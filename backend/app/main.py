@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="YouTube Music Sorter")
+app = FastAPI(title="Playlist Sorter")
 
 # Setup CORS for React frontend
 app.add_middleware(

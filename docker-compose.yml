@@ -1,4 +1,4 @@
-name: youtube-sorter
+name: playlist-sorter
 services:
   backend:
     container_name: yt-sorter-backend
