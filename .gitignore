@@ -12,6 +12,9 @@ dist/
 dist-ssr/
 *.local
 
+# Local files
+.notes/
+
 # IDEs/OS
 .vscode/
 .idea/

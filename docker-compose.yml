@@ -1,14 +1,17 @@
+name: youtube-sorter
 services:
   backend:
+    container_name: yt-sorter-backend
     build: ./backend
     ports:
-      - "8082:8000"
+      - "8182:8000"
     volumes:
       - ./backend/app:/app/app
     environment:
       - PYTHONUNBUFFERED=1
 
   frontend:
+    container_name: yt-sorter-frontend
     build: ./frontend
     ports:
       - "5182:80"
