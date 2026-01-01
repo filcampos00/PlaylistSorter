@@ -12,9 +12,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to the YouTube Music Sorter"}
+
 
 @app.get("/health")
 async def health_check():

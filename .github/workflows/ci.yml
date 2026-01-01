@@ -3,8 +3,22 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ "**" ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+      - 'docker-compose.yml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+      - 'docker-compose.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend-ci:
@@ -36,6 +50,7 @@ jobs:
     - name: Run Linting (Ruff)
       run: |
         ruff check .
+        ruff format --check .
 
     - name: Run Tests
       run: |
