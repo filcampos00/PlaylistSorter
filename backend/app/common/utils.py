@@ -28,21 +28,21 @@ def parse_raw_headers(
         return None
 
     # Sanitize: Remove null bytes and other control characters (except newlines/tabs)
-    raw = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', raw)
+    raw = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", raw)
 
     headers = {}
-    lines = raw.strip().split('\n')
+    lines = raw.strip().split("\n")
 
     for line in lines:
         # Skip request line (e.g., "POST /youtubei/v1/browse...")
-        if line.startswith(('GET ', 'POST ', 'PUT ', 'DELETE ', 'PATCH ')):
+        if line.startswith(("GET ", "POST ", "PUT ", "DELETE ", "PATCH ")):
             continue
         # Skip HTTP version lines
-        if line.strip().startswith('HTTP/'):
+        if line.strip().startswith("HTTP/"):
             continue
 
-        if ':' in line:
-            key, value = line.split(':', 1)
+        if ":" in line:
+            key, value = line.split(":", 1)
             key = key.strip()
             value = value.strip()
 
@@ -51,7 +51,7 @@ def parse_raw_headers(
                 continue
 
             # Sanitize: Remove any remaining control characters from value
-            value = re.sub(r'[\x00-\x1f\x7f]', '', value)
+            value = re.sub(r"[\x00-\x1f\x7f]", "", value)
 
             headers[key] = value
 
@@ -63,9 +63,9 @@ def sanitize_cookie(cookie: str) -> str:
     Sanitize cookie string by removing potentially dangerous patterns.
     """
     # Remove any script tags or event handlers (defense in depth)
-    cookie = re.sub(r'<[^>]*>', '', cookie)
+    cookie = re.sub(r"<[^>]*>", "", cookie)
     # Remove javascript: protocol
-    cookie = re.sub(r'javascript:', '', cookie, flags=re.IGNORECASE)
+    cookie = re.sub(r"javascript:", "", cookie, flags=re.IGNORECASE)
     return cookie
 
 

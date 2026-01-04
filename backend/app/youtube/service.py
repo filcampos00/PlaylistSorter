@@ -10,9 +10,9 @@ from ..common.utils import sanitize_cookie, is_valid_origin
 
 # YouTube-specific allowed origins
 YOUTUBE_ORIGINS = [
-    r'^https://music\.youtube\.com$',
-    r'^https://www\.youtube\.com$',
-    r'^https://youtube\.com$',
+    r"^https://music\.youtube\.com$",
+    r"^https://www\.youtube\.com$",
+    r"^https://youtube\.com$",
 ]
 
 
@@ -31,7 +31,9 @@ class YouTubeService:
         """
         headers_dict = self._parse_youtube_headers(raw_headers)
         if not headers_dict:
-            raise ValueError("Invalid headers. Make sure you copy the full request headers.")
+            raise ValueError(
+                "Invalid headers. Make sure you copy the full request headers."
+            )
 
         headers_json = json.dumps(headers_dict)
         self._client = YTMusic(headers_json)
@@ -80,20 +82,20 @@ class YouTubeService:
             return None
 
         # Remove control characters
-        raw = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', raw)
+        raw = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", raw)
 
         headers = {}
-        lines = raw.strip().split('\n')
+        lines = raw.strip().split("\n")
 
         for line in lines:
             # Skip request/response lines
-            if line.startswith(('GET ', 'POST ', 'PUT ', 'DELETE ', 'PATCH ')):
+            if line.startswith(("GET ", "POST ", "PUT ", "DELETE ", "PATCH ")):
                 continue
-            if line.strip().startswith('HTTP/'):
+            if line.strip().startswith("HTTP/"):
                 continue
 
-            if ':' in line:
-                key, value = line.split(':', 1)
+            if ":" in line:
+                key, value = line.split(":", 1)
                 key = key.strip()
                 value = value.strip()
 
@@ -102,29 +104,29 @@ class YouTubeService:
                     continue
 
                 # Remove control characters from value
-                value = re.sub(r'[\x00-\x1f\x7f]', '', value)
+                value = re.sub(r"[\x00-\x1f\x7f]", "", value)
 
                 # YouTube-specific header extraction
-                if key.lower() == 'cookie':
-                    headers['Cookie'] = sanitize_cookie(value)
-                elif key.lower() == 'authorization':
-                    headers['Authorization'] = value
-                elif key.lower() == 'x-goog-authuser':
-                    if re.match(r'^\d+$', value):
-                        headers['X-Goog-AuthUser'] = value
-                elif key.lower() == 'x-origin':
+                if key.lower() == "cookie":
+                    headers["Cookie"] = sanitize_cookie(value)
+                elif key.lower() == "authorization":
+                    headers["Authorization"] = value
+                elif key.lower() == "x-goog-authuser":
+                    if re.match(r"^\d+$", value):
+                        headers["X-Goog-AuthUser"] = value
+                elif key.lower() == "x-origin":
                     if is_valid_origin(value, YOUTUBE_ORIGINS):
-                        headers['X-Origin'] = value
-                elif key.lower() == 'origin':
+                        headers["X-Origin"] = value
+                elif key.lower() == "origin":
                     if is_valid_origin(value, YOUTUBE_ORIGINS):
-                        headers['Origin'] = value
+                        headers["Origin"] = value
 
         # Cookie is required for YouTube
-        if 'Cookie' not in headers:
+        if "Cookie" not in headers:
             return None
 
         # Set default origin if not present
-        if 'Origin' not in headers and 'X-Origin' not in headers:
-            headers['Origin'] = 'https://music.youtube.com'
+        if "Origin" not in headers and "X-Origin" not in headers:
+            headers["Origin"] = "https://music.youtube.com"
 
         return headers
