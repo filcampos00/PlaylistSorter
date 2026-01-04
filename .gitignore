@@ -14,7 +14,7 @@ dist-ssr/
 
 # Local files
 .notes/
-.things/
+backend/auth_investigation/
 
 # IDEs/OS
 .vscode/

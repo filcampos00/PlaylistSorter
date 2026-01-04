@@ -1,5 +1,9 @@
+"""FastAPI application entry point."""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from .youtube.controller import router as youtube_router
 
 app = FastAPI(title="Playlist Sorter")
 
@@ -15,9 +19,17 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the YouTube Music Sorter"}
+    """Root endpoint."""
+    return {"message": "Welcome to Playlist Sorter"}
 
 
 @app.get("/health")
 async def health_check():
+    """Health check endpoint."""
     return {"status": "healthy"}
+
+
+# Register platform-specific routers
+app.include_router(youtube_router)
+
+# Future: app.include_router(spotify_router)
