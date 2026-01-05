@@ -41,22 +41,23 @@ app.include_router(youtube_router)
 setup_logging()
 logger = logging.getLogger(__name__)
 
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Log every request details."""
     start_time = time.time()
-    
+
     # Extract query parameters
     query_params = dict(request.query_params)
-    
+
     response = await call_next(request)
-    
+
     process_time = (time.time() - start_time) * 1000
-    
+
     logger.info(
         f"Path: {request.url.path} | Method: {request.method} | "
         f"Params: {query_params} | Status: {response.status_code} | "
         f"Duration: {process_time:.2f}ms"
     )
-    
+
     return response

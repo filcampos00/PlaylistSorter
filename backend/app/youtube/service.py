@@ -82,7 +82,9 @@ class YouTubeService:
     async def get_playlist_tracks(self, playlist_id: str) -> list[TrackForSorting]:
         """Fetch tracks from playlist and enrich with album release dates and track order."""
         # Use asyncio.to_thread for the initial playlist fetch as it's a blocking I/O call
-        raw = await asyncio.to_thread(self._client.get_playlist, playlist_id, limit=None)
+        raw = await asyncio.to_thread(
+            self._client.get_playlist, playlist_id, limit=None
+        )
         raw_tracks = raw.get("tracks", [])
         album_data = await self._fetch_album_data(raw_tracks)
 
@@ -140,7 +142,7 @@ class YouTubeService:
                 )
 
         album_data = {}
-        
+
         # Limit concurrency to avoid overwhelming the system or API
         sem = asyncio.Semaphore(10)
 
@@ -156,7 +158,9 @@ class YouTubeService:
                     if album_tracks and album_tracks[0].get("videoId"):
                         try:
                             # Run the blocking get_song call in a separate thread
-                            song = await asyncio.to_thread(self._client.get_song, album_tracks[0]["videoId"])
+                            song = await asyncio.to_thread(
+                                self._client.get_song, album_tracks[0]["videoId"]
+                            )
                             upload_date = (
                                 song.get("microformat", {})
                                 .get("microformatDataRenderer", {})
@@ -207,9 +211,11 @@ class YouTubeService:
 
         # Execute all fetches concurrently
         await asyncio.gather(*[fetch_single_album(aid) for aid in album_ids])
-        
+
         elapsed = time.time() - start_time
-        logger.info(f"[BENCHMARK] Fetched {len(album_ids)} albums in {elapsed:.2f} seconds (Concurrency: 10)")
+        logger.info(
+            f"[BENCHMARK] Fetched {len(album_ids)} albums in {elapsed:.2f} seconds (Concurrency: 10)"
+        )
 
         return album_data
 
@@ -217,7 +223,7 @@ class YouTubeService:
         self, playlist_id: str, strategy: SortStrategy, context: SortContext
     ) -> int:
         """Sort playlist using injected strategy.
-        
+
         Returns:
             Number of tracks reordered (0 if already sorted).
         """
@@ -234,7 +240,7 @@ class YouTubeService:
         sorted_tracks: list[TrackForSorting],
     ) -> int:
         """Apply sorted order. Skips API calls if already sorted.
-        
+
         Returns:
             Number of tracks reordered (0 if already sorted).
 
@@ -249,7 +255,9 @@ class YouTubeService:
 
         # Check if already sorted - skip API calls entirely
         if current_order == target_order:
-            logger.info("[BENCHMARK] Playlist already sorted - skipping API calls (0 seconds)")
+            logger.info(
+                "[BENCHMARK] Playlist already sorted - skipping API calls (0 seconds)"
+            )
             return 0  # Already sorted - 0 tracks reordered
 
         # Remove all tracks
@@ -260,7 +268,9 @@ class YouTubeService:
             [{"videoId": t.video_id, "setVideoId": t.set_video_id} for t in original],
         )
         elapsed_remove = time.time() - start_remove
-        logger.info(f"[BENCHMARK] Removed {len(original)} tracks in {elapsed_remove:.2f} seconds")
+        logger.info(
+            f"[BENCHMARK] Removed {len(original)} tracks in {elapsed_remove:.2f} seconds"
+        )
 
         # Try to add sorted tracks
         try:
@@ -272,10 +282,14 @@ class YouTubeService:
                 duplicates=True,
             )
             elapsed_add = time.time() - start_add
-            logger.info(f"[BENCHMARK] Added {len(sorted_tracks)} tracks in {elapsed_add:.2f} seconds")
+            logger.info(
+                f"[BENCHMARK] Added {len(sorted_tracks)} tracks in {elapsed_add:.2f} seconds"
+            )
 
             elapsed_total = time.time() - start_total
-            logger.info(f"[BENCHMARK] Total sort application time: {elapsed_total:.2f} seconds")
+            logger.info(
+                f"[BENCHMARK] Total sort application time: {elapsed_total:.2f} seconds"
+            )
 
             return len(sorted_tracks)  # N tracks reordered
         except Exception as add_error:
@@ -295,7 +309,6 @@ class YouTubeService:
                     f"CRITICAL: Sort failed and restore failed! "
                     f"Original error: {add_error}, Restore error: {restore_error}"
                 )
-
 
     def _parse_youtube_headers(self, raw: str) -> dict | None:
         """

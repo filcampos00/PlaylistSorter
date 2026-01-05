@@ -37,12 +37,12 @@ def setup_logging():
 
     # Ensure no handlers are duplicated if setup is called multiple times
     # (though in main.py it acts as a script entry point usually)
-    
+
     # Explicitly remove StreamHandler if present (to adhere to user request of NO console logs)
-    # However, by default, the root logger might not have one unless added. 
-    # If UVICORN adds one, we might want to leave it for Uvicorn's own logs, 
+    # However, by default, the root logger might not have one unless added.
+    # If UVICORN adds one, we might want to leave it for Uvicorn's own logs,
     # but for OUR app logs, we just won't add a StreamHandler.
-    
+
     # If we really want to silence console for our app, we don't add StreamHandler.
     # Note: Uvicorn has its own logging config.
 
