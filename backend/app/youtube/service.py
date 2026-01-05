@@ -5,7 +5,6 @@ import re
 import asyncio
 import time
 import logging
-from pathlib import Path
 
 from ytmusicapi import YTMusic
 
@@ -250,7 +249,7 @@ class YouTubeService:
 
         # Check if already sorted - skip API calls entirely
         if current_order == target_order:
-            logger.info(f"[BENCHMARK] Playlist already sorted - skipping API calls (0 seconds)")
+            logger.info("[BENCHMARK] Playlist already sorted - skipping API calls (0 seconds)")
             return 0  # Already sorted - 0 tracks reordered
 
         # Remove all tracks

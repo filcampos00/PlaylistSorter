@@ -1,9 +1,12 @@
 """FastAPI application entry point."""
 
-from fastapi import FastAPI
+import logging
+import time
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .youtube.controller import router as youtube_router
+from .core.logging import setup_logging
 
 app = FastAPI(title="Playlist Sorter")
 
@@ -35,11 +38,6 @@ app.include_router(youtube_router)
 # Future: app.include_router(spotify_router)
 
 # Initialize logging
-from .core.logging import setup_logging
-import logging
-import time
-from fastapi import Request
-
 setup_logging()
 logger = logging.getLogger(__name__)
 
