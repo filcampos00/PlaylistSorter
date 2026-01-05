@@ -80,7 +80,7 @@ async def sort_playlist(
     """
     try:
         strategy = get_strategy(sort_by)
-        count = youtube.sort_playlist(playlist_id, strategy, context)
+        count = await youtube.sort_playlist(playlist_id, strategy, context)
 
         # User-friendly labels for success message
         sort_labels = {

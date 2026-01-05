@@ -2,6 +2,8 @@
 
 import json
 import re
+import asyncio
+import time
 
 from ytmusicapi import YTMusic
 
@@ -73,11 +75,12 @@ class YouTubeService:
 
         return playlists
 
-    def get_playlist_tracks(self, playlist_id: str) -> list[TrackForSorting]:
+    async def get_playlist_tracks(self, playlist_id: str) -> list[TrackForSorting]:
         """Fetch tracks from playlist and enrich with album release dates and track order."""
-        raw = self._client.get_playlist(playlist_id, limit=None)
+        # Use asyncio.to_thread for the initial playlist fetch as it's a blocking I/O call
+        raw = await asyncio.to_thread(self._client.get_playlist, playlist_id, limit=None)
         raw_tracks = raw.get("tracks", [])
-        album_data = self._fetch_album_data(raw_tracks)
+        album_data = await self._fetch_album_data(raw_tracks)
 
         tracks = []
         for t in raw_tracks:
@@ -115,8 +118,9 @@ class YouTubeService:
         print(f"[DEBUG] Processed {len(tracks)} tracks from {len(album_data)} albums")
         return tracks
 
-    def _fetch_album_data(self, tracks: list) -> dict[str, dict]:
-        """Batch fetch album info. Returns {album_id: {date, track_order_by_id, track_order_by_title}}."""
+    async def _fetch_album_data(self, tracks: list) -> dict[str, dict]:
+        """Batch fetch album info concurrently. Returns {album_id: {date, track_order_by_id, track_order_by_title}}."""
+        start_time = time.time()
         album_ids = {
             t.get("album", {}).get("id")
             for t in tracks
@@ -132,74 +136,90 @@ class YouTubeService:
                 )
 
         album_data = {}
-        for album_id in album_ids:
-            try:
-                album = self._client.get_album(album_id)
+        
+        # Limit concurrency to avoid overwhelming the system or API
+        sem = asyncio.Semaphore(10)
 
-                # Get release date from first track's upload date (most reliable)
-                release_date = None
-                album_tracks = album.get("tracks", [])
-                if album_tracks and album_tracks[0].get("videoId"):
-                    try:
-                        song = self._client.get_song(album_tracks[0]["videoId"])
-                        upload_date = (
-                            song.get("microformat", {})
-                            .get("microformatDataRenderer", {})
-                            .get("uploadDate")
-                        )
-                        if upload_date:
-                            release_date = upload_date.split("T")[0]
-                    except Exception:
-                        pass
+        async def fetch_single_album(album_id: str):
+            async with sem:
+                try:
+                    # Run the blocking get_album call in a separate thread
+                    album = await asyncio.to_thread(self._client.get_album, album_id)
 
-                # Fallback: Year only
-                if not release_date:
-                    year = album.get("year", "9999")
-                    release_date = f"{year}-01-01"
+                    # Get release date from first track's upload date (most reliable)
+                    release_date = None
+                    album_tracks = album.get("tracks", [])
+                    if album_tracks and album_tracks[0].get("videoId"):
+                        try:
+                            # Run the blocking get_song call in a separate thread
+                            song = await asyncio.to_thread(self._client.get_song, album_tracks[0]["videoId"])
+                            upload_date = (
+                                song.get("microformat", {})
+                                .get("microformatDataRenderer", {})
+                                .get("uploadDate")
+                            )
+                            if upload_date:
+                                release_date = upload_date.split("T")[0]
+                        except Exception:
+                            pass
 
-                # Build track order mapping: video_id -> position AND title -> position
-                track_order_by_id = {}
-                track_order_by_title = {}
-                album_tracks = album.get("tracks", [])
-                for idx, track in enumerate(album_tracks, start=1):
-                    if track.get("videoId"):
-                        track_order_by_id[track["videoId"]] = idx
-                    if track.get("title"):
-                        # Normalize title for matching (lowercase, strip whitespace)
-                        normalized_title = track["title"].strip().lower()
-                        track_order_by_title[normalized_title] = idx
+                    # Fallback: Year only
+                    if not release_date:
+                        year = album.get("year", "9999")
+                        release_date = f"{year}-01-01"
 
-                album_data[album_id] = {
-                    "date": release_date,
-                    "track_order_by_id": track_order_by_id,
-                    "track_order_by_title": track_order_by_title,
-                }
+                    # Build track order mapping: video_id -> position AND title -> position
+                    track_order_by_id = {}
+                    track_order_by_title = {}
+                    album_tracks = album.get("tracks", [])
+                    for idx, track in enumerate(album_tracks, start=1):
+                        if track.get("videoId"):
+                            track_order_by_id[track["videoId"]] = idx
+                        if track.get("title"):
+                            # Normalize title for matching (lowercase, strip whitespace)
+                            normalized_title = track["title"].strip().lower()
+                            track_order_by_title[normalized_title] = idx
 
-                # Get primary artist for logging
-                primary_artist = "Unknown"
-                if album.get("artists"):
-                    primary_artist = album["artists"][0].get("name", "Unknown")
+                    # This is thread-safe because we're running primarily in the event loop here
+                    # effectively only the I/O parts are threaded.
+                    album_data[album_id] = {
+                        "date": release_date,
+                        "track_order_by_id": track_order_by_id,
+                        "track_order_by_title": track_order_by_title,
+                    }
 
-                count_in_playlist = playlist_album_counts.get(album_id, 0)
-                print(
-                    f"[DEBUG] Artist: {primary_artist:<20} | Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Tracks: {count_in_playlist}"
-                )
-            except Exception as e:
-                print(f"[DEBUG] Failed to fetch album {album_id}: {e}")
-                pass
+                    # Get primary artist for logging
+                    primary_artist = "Unknown"
+                    if album.get("artists"):
+                        primary_artist = album["artists"][0].get("name", "Unknown")
+
+                    count_in_playlist = playlist_album_counts.get(album_id, 0)
+                    print(
+                        f"[DEBUG] Artist: {primary_artist:<20} | Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Tracks: {count_in_playlist}"
+                    )
+                except Exception as e:
+                    print(f"[DEBUG] Failed to fetch album {album_id}: {e}")
+                    pass
+
+        # Execute all fetches concurrently
+        await asyncio.gather(*[fetch_single_album(aid) for aid in album_ids])
+        
+        elapsed = time.time() - start_time
+        print(f"[BENCHMARK] Fetched {len(album_ids)} albums in {elapsed:.2f} seconds (Concurrency: 10)")
+
         return album_data
 
-    def sort_playlist(
+    async def sort_playlist(
         self, playlist_id: str, strategy: SortStrategy, context: SortContext
     ) -> int:
         """Sort playlist using injected strategy."""
-        tracks = self.get_playlist_tracks(playlist_id)
+        tracks = await self.get_playlist_tracks(playlist_id)
         if not tracks:
             return 0
         sorted_tracks = strategy.sort(tracks, context)
-        return self._apply_sorted_order(playlist_id, tracks, sorted_tracks)
+        return await self._apply_sorted_order(playlist_id, tracks, sorted_tracks)
 
-    def _apply_sorted_order(
+    async def _apply_sorted_order(
         self,
         playlist_id: str,
         original: list[TrackForSorting],
@@ -210,22 +230,38 @@ class YouTubeService:
         If add fails after remove, attempts to restore original tracks.
         """
         # Remove all tracks
-        self._client.remove_playlist_items(
+        # Running in thread as it performs I/O
+        start_remove = time.time()
+        await asyncio.to_thread(
+            self._client.remove_playlist_items,
             playlist_id,
             [{"videoId": t.video_id, "setVideoId": t.set_video_id} for t in original],
         )
+        elapsed_remove = time.time() - start_remove
+        print(f"[BENCHMARK] Removed {len(original)} tracks in {elapsed_remove:.2f} seconds")
 
         # Try to add sorted tracks
         try:
-            self._client.add_playlist_items(
-                playlist_id, [t.video_id for t in sorted_tracks], duplicates=True
+            # Running in thread as it performs I/O
+            start_add = time.time()
+            await asyncio.to_thread(
+                self._client.add_playlist_items,
+                playlist_id, 
+                [t.video_id for t in sorted_tracks], 
+                duplicates=True
             )
+            elapsed_add = time.time() - start_add
+            print(f"[BENCHMARK] Added {len(sorted_tracks)} tracks in {elapsed_add:.2f} seconds")
+            
             return len(sorted_tracks)
         except Exception as add_error:
             # Add failed - try to restore original tracks
             try:
-                self._client.add_playlist_items(
-                    playlist_id, [t.video_id for t in original], duplicates=True
+                await asyncio.to_thread(
+                    self._client.add_playlist_items,
+                    playlist_id, 
+                    [t.video_id for t in original], 
+                    duplicates=True
                 )
                 raise ValueError(
                     f"Sort failed, original tracks restored. Error: {add_error}"
