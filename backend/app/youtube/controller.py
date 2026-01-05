@@ -91,9 +91,14 @@ async def sort_playlist(
         }
         label = sort_labels.get(sort_by, sort_by.value)
 
+        if count == 0:
+            message = f"Playlist is already sorted by {label}"
+        else:
+            message = f"Sorted {count} tracks by {label}"
+
         return SortResponse(
             success=True,
-            message=f"Sorted {count} tracks by {label}",
+            message=message,
             tracks_reordered=count,
         )
     except ValueError as e:

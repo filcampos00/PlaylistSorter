@@ -4,12 +4,17 @@ import json
 import re
 import asyncio
 import time
+import logging
+from pathlib import Path
 
 from ytmusicapi import YTMusic
 
 from ..common.schemas import Playlist
 from ..common.sorting import SortContext, SortStrategy, TrackForSorting
 from ..common.utils import sanitize_cookie, is_valid_origin
+
+
+logger = logging.getLogger(__name__)
 
 # YouTube-specific allowed origins
 YOUTUBE_ORIGINS = [
@@ -115,7 +120,7 @@ class YouTubeService:
                 )
             )
 
-        print(f"[DEBUG] Processed {len(tracks)} tracks from {len(album_data)} albums")
+        logger.debug(f"Processed {len(tracks)} tracks from {len(album_data)} albums")
         return tracks
 
     async def _fetch_album_data(self, tracks: list) -> dict[str, dict]:
@@ -194,28 +199,32 @@ class YouTubeService:
                         primary_artist = album["artists"][0].get("name", "Unknown")
 
                     count_in_playlist = playlist_album_counts.get(album_id, 0)
-                    print(
-                        f"[DEBUG] Artist: {primary_artist:<20} | Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Tracks: {count_in_playlist}"
+                    logger.debug(
+                        f"Artist: {primary_artist:<20} | Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Tracks: {count_in_playlist}"
                     )
                 except Exception as e:
-                    print(f"[DEBUG] Failed to fetch album {album_id}: {e}")
+                    logger.warning(f"Failed to fetch album {album_id}: {e}")
                     pass
 
         # Execute all fetches concurrently
         await asyncio.gather(*[fetch_single_album(aid) for aid in album_ids])
         
         elapsed = time.time() - start_time
-        print(f"[BENCHMARK] Fetched {len(album_ids)} albums in {elapsed:.2f} seconds (Concurrency: 10)")
+        logger.info(f"[BENCHMARK] Fetched {len(album_ids)} albums in {elapsed:.2f} seconds (Concurrency: 10)")
 
         return album_data
 
     async def sort_playlist(
         self, playlist_id: str, strategy: SortStrategy, context: SortContext
     ) -> int:
-        """Sort playlist using injected strategy."""
+        """Sort playlist using injected strategy.
+        
+        Returns:
+            Number of tracks reordered (0 if already sorted).
+        """
         tracks = await self.get_playlist_tracks(playlist_id)
         if not tracks:
-            return 0
+            return 0  # Empty playlist
         sorted_tracks = strategy.sort(tracks, context)
         return await self._apply_sorted_order(playlist_id, tracks, sorted_tracks)
 
@@ -225,12 +234,26 @@ class YouTubeService:
         original: list[TrackForSorting],
         sorted_tracks: list[TrackForSorting],
     ) -> int:
-        """Remove all tracks and re-add in sorted order (same playlist).
+        """Apply sorted order. Skips API calls if already sorted.
+        
+        Returns:
+            Number of tracks reordered (0 if already sorted).
 
-        If add fails after remove, attempts to restore original tracks.
+        Compares current order with target order - if identical, returns immediately.
+        Otherwise, removes all tracks and re-adds them in sorted order.
         """
+        start_total = time.time()
+
+        # Build setVideoId lists for comparison
+        current_order = [t.set_video_id for t in original]
+        target_order = [t.set_video_id for t in sorted_tracks]
+
+        # Check if already sorted - skip API calls entirely
+        if current_order == target_order:
+            logger.info(f"[BENCHMARK] Playlist already sorted - skipping API calls (0 seconds)")
+            return 0  # Already sorted - 0 tracks reordered
+
         # Remove all tracks
-        # Running in thread as it performs I/O
         start_remove = time.time()
         await asyncio.to_thread(
             self._client.remove_playlist_items,
@@ -238,30 +261,32 @@ class YouTubeService:
             [{"videoId": t.video_id, "setVideoId": t.set_video_id} for t in original],
         )
         elapsed_remove = time.time() - start_remove
-        print(f"[BENCHMARK] Removed {len(original)} tracks in {elapsed_remove:.2f} seconds")
+        logger.info(f"[BENCHMARK] Removed {len(original)} tracks in {elapsed_remove:.2f} seconds")
 
         # Try to add sorted tracks
         try:
-            # Running in thread as it performs I/O
             start_add = time.time()
             await asyncio.to_thread(
                 self._client.add_playlist_items,
-                playlist_id, 
-                [t.video_id for t in sorted_tracks], 
-                duplicates=True
+                playlist_id,
+                [t.video_id for t in sorted_tracks],
+                duplicates=True,
             )
             elapsed_add = time.time() - start_add
-            print(f"[BENCHMARK] Added {len(sorted_tracks)} tracks in {elapsed_add:.2f} seconds")
-            
-            return len(sorted_tracks)
+            logger.info(f"[BENCHMARK] Added {len(sorted_tracks)} tracks in {elapsed_add:.2f} seconds")
+
+            elapsed_total = time.time() - start_total
+            logger.info(f"[BENCHMARK] Total sort application time: {elapsed_total:.2f} seconds")
+
+            return len(sorted_tracks)  # N tracks reordered
         except Exception as add_error:
             # Add failed - try to restore original tracks
             try:
                 await asyncio.to_thread(
                     self._client.add_playlist_items,
-                    playlist_id, 
-                    [t.video_id for t in original], 
-                    duplicates=True
+                    playlist_id,
+                    [t.video_id for t in original],
+                    duplicates=True,
                 )
                 raise ValueError(
                     f"Sort failed, original tracks restored. Error: {add_error}"
@@ -271,6 +296,7 @@ class YouTubeService:
                     f"CRITICAL: Sort failed and restore failed! "
                     f"Original error: {add_error}, Restore error: {restore_error}"
                 )
+
 
     def _parse_youtube_headers(self, raw: str) -> dict | None:
         """

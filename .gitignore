@@ -15,6 +15,7 @@ dist-ssr/
 # Local files
 .notes/
 backend/auth_investigation/
+logs/
 
 # IDEs/OS
 .vscode/
