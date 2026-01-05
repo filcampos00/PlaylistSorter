@@ -37,3 +37,11 @@ class PlaylistsResponse(BaseModel):
     success: bool
     message: str
     playlists: list[Playlist] = []
+
+
+class SortResponse(BaseModel):
+    """Response from sorting a playlist."""
+
+    success: bool
+    message: str
+    tracks_reordered: int = 0

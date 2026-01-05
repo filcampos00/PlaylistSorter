@@ -8,3 +8,11 @@ export interface Playlist {
     thumbnail_url: string | null;
     track_count: number | null;
 }
+
+export type SortOption = "album_release_date_asc" | "album_release_date_desc";
+
+export interface SortResponse {
+    success: boolean;
+    message: string;
+    tracks_reordered: number;
+}
