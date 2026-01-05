@@ -70,14 +70,21 @@ export const LoginPage = ({ onBack }: LoginPageProps) => {
 
                 <details className="help-section">
                     <summary>How to get your headers</summary>
-                    <ol>
-                        <li>Open <a href="https://music.youtube.com" target="_blank" rel="noopener noreferrer">music.youtube.com</a> and log in</li>
-                        <li>Open Developer Tools (F12)</li>
-                        <li>Go to the Network tab</li>
-                        <li>Click on any request to music.youtube.com</li>
-                        <li>Right-click → Copy → Copy request headers</li>
-                        <li>Paste here</li>
-                    </ol>
+                    <div className="help-content">
+                        <ol>
+                            <li>Open a new tab and go to <strong>Youtube Music</strong></li>
+                            <li>Open Developer Tools (F12 or Ctrl+Shift+I)</li>
+                            <li>Select the <strong>Network</strong> tab</li>
+                            <li>Filter by <code>browse</code> in the filter box</li>
+                            <li>Click on any request named <code>browse</code> (left side)</li>
+                            <li>Find <strong>Request Headers</strong></li>
+                            <li>Copy all headers</li>
+                            <li>Paste them into the box above</li>
+                        </ol>
+                        <p className="note">
+                            Note: Ensure you copy the <em>Request Headers</em>, not Response Headers.
+                        </p>
+                    </div>
                 </details>
             </div>
         </div>

@@ -20,7 +20,8 @@ def sample_tracks() -> list[TrackForSorting]:
             title="Song from 2020",
             artist_name="Artist A",
             album_name="Album 2020",
-            album_release_date="2020",
+            album_release_date="2020-05-15",
+            album_track_number=1,
         ),
         TrackForSorting(
             video_id="vid2",
@@ -28,7 +29,8 @@ def sample_tracks() -> list[TrackForSorting]:
             title="Song from 2018",
             artist_name="Artist B",
             album_name="Album 2018",
-            album_release_date="2018",
+            album_release_date="2018-01-01",
+            album_track_number=5,
         ),
         TrackForSorting(
             video_id="vid3",
@@ -36,7 +38,8 @@ def sample_tracks() -> list[TrackForSorting]:
             title="Song from 2023",
             artist_name="Artist C",
             album_name="Album 2023",
-            album_release_date="2023",
+            album_release_date="2023-11-20",
+            album_track_number=2,
         ),
         TrackForSorting(
             video_id="vid4",
@@ -45,6 +48,7 @@ def sample_tracks() -> list[TrackForSorting]:
             artist_name="Artist D",
             album_name="Unknown Album",
             album_release_date=None,
+            album_track_number=9999,
         ),
     ]
 
@@ -59,9 +63,9 @@ class TestAlbumReleaseDateStrategy:
 
         sorted_tracks = strategy.sort(sample_tracks, context)
 
-        assert sorted_tracks[0].album_release_date == "2018"
-        assert sorted_tracks[1].album_release_date == "2020"
-        assert sorted_tracks[2].album_release_date == "2023"
+        assert sorted_tracks[0].album_release_date == "2018-01-01"
+        assert sorted_tracks[1].album_release_date == "2020-05-15"
+        assert sorted_tracks[2].album_release_date == "2023-11-20"
         # Tracks without date go to end (default 9999)
         assert sorted_tracks[3].album_release_date is None
 
@@ -72,9 +76,9 @@ class TestAlbumReleaseDateStrategy:
 
         sorted_tracks = strategy.sort(sample_tracks, context)
 
-        assert sorted_tracks[0].album_release_date == "2023"
-        assert sorted_tracks[1].album_release_date == "2020"
-        assert sorted_tracks[2].album_release_date == "2018"
+        assert sorted_tracks[0].album_release_date == "2023-11-20"
+        assert sorted_tracks[1].album_release_date == "2020-05-15"
+        assert sorted_tracks[2].album_release_date == "2018-01-01"
         # Tracks without date go to end (default 0000)
         assert sorted_tracks[3].album_release_date is None
 
@@ -86,6 +90,33 @@ class TestAlbumReleaseDateStrategy:
         sorted_tracks = strategy.sort([], context)
 
         assert sorted_tracks == []
+
+    def test_sort_tracks_within_same_album(self):
+        """Tracks from the same album should be sorted by album_track_number."""
+        tracks = [
+            TrackForSorting(
+                video_id="v2", set_video_id="s2", title="Track 2",
+                album_name="Album A", album_release_date="2020-01-01", album_track_number=2
+            ),
+            TrackForSorting(
+                video_id="v1", set_video_id="s1", title="Track 1",
+                album_name="Album A", album_release_date="2020-01-01", album_track_number=1
+            ),
+            TrackForSorting(
+                video_id="v3", set_video_id="s3", title="Track 3",
+                album_name="Album A", album_release_date="2020-01-01", album_track_number=3
+            ),
+        ]
+        
+        strategy = AlbumReleaseDateStrategy(ascending=True)
+        context = SortContext()
+        
+        sorted_tracks = strategy.sort(tracks, context)
+        
+        assert sorted_tracks[0].title == "Track 1"
+        assert sorted_tracks[1].title == "Track 2"
+        assert sorted_tracks[2].title == "Track 3"
+
 
 
 class TestCreateStrategy:

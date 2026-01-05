@@ -25,16 +25,13 @@ async def test_auth(youtube: YouTubeService = Depends(get_youtube_service)):
             message="Authentication successful",
             channel_name=channel_name,
         )
-    except ValueError as e:
-        return AuthTestResponse(
-            success=False,
-            message=str(e),
-            channel_name=None,
-        )
     except Exception as e:
+        # Log the full error for debugging
+        print(f"Error during authentication: {str(e)}")
+        # Return a friendly message to the user
         return AuthTestResponse(
             success=False,
-            message=f"Authentication failed: {str(e)}",
+            message="Authentication failed. Please follow the instructions below.",
             channel_name=None,
         )
 

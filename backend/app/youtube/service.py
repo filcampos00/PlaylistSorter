@@ -79,9 +79,8 @@ class YouTubeService:
         raw_tracks = raw.get("tracks", [])
         album_data = self._fetch_album_data(raw_tracks)
 
-        print(f"\n[DEBUG] === PLAYLIST TRACKS ({len(raw_tracks)} total) ===")
         tracks = []
-        for idx, t in enumerate(raw_tracks, start=1):
+        for t in raw_tracks:
             album_id = t.get("album", {}).get("id") if t.get("album") else None
             video_id = t["videoId"]
             track_title = t.get("title", "")
@@ -96,14 +95,10 @@ class YouTubeService:
             track_order_by_title = album_info.get("track_order_by_title", {})
             
             track_number = track_order_by_id.get(video_id)
-            matched_by = "videoId"
             if track_number is None:
                 # Fallback: match by normalized title
                 normalized_title = track_title.strip().lower()
                 track_number = track_order_by_title.get(normalized_title, 9999)
-                matched_by = "title" if track_number != 9999 else "NOT FOUND"
-            
-            print(f"[DEBUG] {idx:3}. {track_title[:30]:<30} | Album: {album_name or 'N/A':<20} | Track#: {track_number:2} ({matched_by}) | Date: {release_date or 'N/A'}")
             
             tracks.append(
                 TrackForSorting(
@@ -116,7 +111,8 @@ class YouTubeService:
                     album_track_number=track_number,
                 )
             )
-        print(f"[DEBUG] === END PLAYLIST TRACKS ===\n")
+        
+        print(f"[DEBUG] Processed {len(tracks)} tracks from {len(album_data)} albums")
         return tracks
 
     def _fetch_album_data(self, tracks: list) -> dict[str, dict]:
@@ -126,28 +122,42 @@ class YouTubeService:
             for t in tracks
             if t.get("album") and t.get("album", {}).get("id")
         }
-        print(f"[DEBUG] Fetching data for {len(album_ids)} unique albums")
+        # Calculate track counts per album in the current playlist
+        playlist_album_counts = {}
+        for t in tracks:
+            alb = t.get("album", {})
+            if alb and alb.get("id"):
+                playlist_album_counts[alb["id"]] = playlist_album_counts.get(alb["id"], 0) + 1
+
         album_data = {}
         for album_id in album_ids:
             try:
                 album = self._client.get_album(album_id)
                 
-                # Get full release date (year, month, day) if available
-                release_date_info = album.get("releaseDate", {})
-                if release_date_info and isinstance(release_date_info, dict):
-                    year = release_date_info.get("year", album.get("year", "9999"))
-                    month = release_date_info.get("month", 1)
-                    day = release_date_info.get("day", 1)
-                    release_date = f"{year}-{month:02d}-{day:02d}"
-                else:
-                    # Fallback to just year
+                # Get release date from first track's upload date (most reliable)
+                release_date = None
+                source = "Track Fallback"
+                album_tracks = album.get("tracks", [])
+                if album_tracks and album_tracks[0].get("videoId"):
+                    try:
+                        song = self._client.get_song(album_tracks[0]["videoId"])
+                        upload_date = song.get("microformat", {}).get("microformatDataRenderer", {}).get("uploadDate")
+                        if upload_date:
+                            release_date = upload_date.split("T")[0]
+                    except Exception:
+                        pass
+
+                # Fallback: Year only
+                if not release_date:
                     year = album.get("year", "9999")
                     release_date = f"{year}-01-01"
+                    source = "Year Only"
                 
                 # Build track order mapping: video_id -> position AND title -> position
                 track_order_by_id = {}
                 track_order_by_title = {}
-                for idx, track in enumerate(album.get("tracks", []), start=1):
+                album_tracks = album.get("tracks", [])
+                for idx, track in enumerate(album_tracks, start=1):
                     if track.get("videoId"):
                         track_order_by_id[track["videoId"]] = idx
                     if track.get("title"):
@@ -160,7 +170,9 @@ class YouTubeService:
                     "track_order_by_id": track_order_by_id,
                     "track_order_by_title": track_order_by_title,
                 }
-                print(f"[DEBUG] Album {album.get('title', 'unknown')}: {release_date}, {len(track_order_by_id)} tracks")
+                
+                count_in_playlist = playlist_album_counts.get(album_id, 0)
+                print(f"[DEBUG] Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Source: {source:<15} | Tracks: {count_in_playlist}")
             except Exception as e:
                 print(f"[DEBUG] Failed to fetch album {album_id}: {e}")
                 pass

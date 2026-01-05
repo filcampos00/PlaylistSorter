@@ -8,7 +8,7 @@ class AuthHeaders(BaseModel):
 
     headers_raw: str = Field(
         ...,
-        min_length=10,
+        min_length=1,
         max_length=50000,
         description="Raw HTTP headers copied from browser DevTools",
     )
