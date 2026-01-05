@@ -88,4 +88,3 @@ def create_strategy(option: SortOption) -> SortStrategy:
             return ArtistAlphabeticalStrategy(ascending=False)
         case _:
             raise ValueError(f"Unknown sort option: {option}")
-

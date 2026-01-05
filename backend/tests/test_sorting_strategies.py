@@ -257,4 +257,3 @@ class TestCreateStrategy:
         """Factory raises error for unknown option."""
         with pytest.raises(ValueError, match="Unknown sort option"):
             create_strategy("invalid_option")
-
