@@ -1,4 +1,5 @@
 pytest
+pytest-asyncio
 ruff
 # pip-audit is handled by the GitHub Action in CI, but can be here for local use
 pip-audit

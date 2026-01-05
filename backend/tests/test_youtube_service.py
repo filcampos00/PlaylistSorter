@@ -21,7 +21,8 @@ def service(mock_yt_client):
 class TestFetchAlbumData:
     """Tests for _fetch_album_data logic."""
 
-    def test_fetch_album_with_track_fallback(self, service, mock_yt_client):
+    @pytest.mark.asyncio
+    async def test_fetch_album_with_track_fallback(self, service, mock_yt_client):
         """Test fallback to fetching track uploadDate when album date is missing."""
 
         # Mock input tracks
@@ -39,14 +40,15 @@ class TestFetchAlbumData:
             "microformat": {"microformatDataRenderer": {"uploadDate": "2025-03-10"}}
         }
 
-        album_data = service._fetch_album_data(tracks)
+        album_data = await service._fetch_album_data(tracks)
 
         # Verify fallback worked
         assert album_data["alb1"]["date"] == "2025-03-10"
         # Verify get_song was called
         mock_yt_client.get_song.assert_called_with("v1")
 
-    def test_fetch_album_year_fallback(self, service, mock_yt_client):
+    @pytest.mark.asyncio
+    async def test_fetch_album_year_fallback(self, service, mock_yt_client):
         """Test fallback to Year-01-01 when even track fallback fails."""
 
         tracks = [{"album": {"id": "alb2"}, "videoId": "v2"}]
@@ -61,7 +63,7 @@ class TestFetchAlbumData:
         # Mock get_song failure (raises exception)
         mock_yt_client.get_song.side_effect = Exception("Song fetch failed")
 
-        album_data = service._fetch_album_data(tracks)
+        album_data = await service._fetch_album_data(tracks)
 
         # Verify fallback to year
         assert album_data["alb2"]["date"] == "1999-01-01"
