@@ -69,12 +69,12 @@ export const DashboardPage = () => {
                 message: data.message,
             });
 
-            // Clear selection on success after short delay
+            // Clear selection on success after delay
             if (data.success) {
                 setTimeout(() => {
                     setSortResult(null);
                     setSelectedPlaylistId(null);
-                }, 3000);
+                }, 6000);
             }
         } catch (err) {
             setSortResult({
@@ -186,6 +186,12 @@ export const DashboardPage = () => {
                                     <option value="album_release_date_desc">
                                         Album Release Date (Newest First)
                                     </option>
+                                    <option value="artist_name_asc">
+                                        Artist Name (A → Z)
+                                    </option>
+                                    <option value="artist_name_desc">
+                                        Artist Name (Z → A)
+                                    </option>
                                 </select>
                             </div>
 
@@ -209,7 +215,17 @@ export const DashboardPage = () => {
 
                         {sortResult && (
                             <div className={`sort-result-toast ${sortResult.success ? "success" : "error"}`}>
-                                {sortResult.success ? "✅" : "⚠️"} {sortResult.message}
+                                <span>{sortResult.success ? "✅" : "⚠️"} {sortResult.message}</span>
+                                <button
+                                    className="toast-dismiss"
+                                    onClick={() => {
+                                        setSortResult(null);
+                                        setSelectedPlaylistId(null);
+                                    }}
+                                    aria-label="Dismiss"
+                                >
+                                    ✕
+                                </button>
                             </div>
                         )}
                     </div>

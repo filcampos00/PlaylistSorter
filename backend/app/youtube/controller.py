@@ -81,9 +81,19 @@ async def sort_playlist(
     try:
         strategy = get_strategy(sort_by)
         count = youtube.sort_playlist(playlist_id, strategy, context)
+
+        # User-friendly labels for success message
+        sort_labels = {
+            SortOption.ALBUM_RELEASE_DATE_ASC: "album release date (oldest first)",
+            SortOption.ALBUM_RELEASE_DATE_DESC: "album release date (newest first)",
+            SortOption.ARTIST_NAME_ASC: "artist name (A → Z)",
+            SortOption.ARTIST_NAME_DESC: "artist name (Z → A)",
+        }
+        label = sort_labels.get(sort_by, sort_by.value)
+
         return SortResponse(
             success=True,
-            message=f"Sorted {count} tracks by {sort_by.value}",
+            message=f"Sorted {count} tracks by {label}",
             tracks_reordered=count,
         )
     except ValueError as e:

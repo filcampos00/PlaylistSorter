@@ -5,6 +5,7 @@ import pytest
 from app.common.sorting.schemas import SortOption, TrackForSorting
 from app.common.sorting.strategies import (
     AlbumReleaseDateStrategy,
+    ArtistAlphabeticalStrategy,
     SortContext,
     create_strategy,
 )
@@ -130,6 +131,101 @@ class TestAlbumReleaseDateStrategy:
         assert sorted_tracks[2].title == "Track 3"
 
 
+class TestArtistAlphabeticalStrategy:
+    """Tests for ArtistAlphabeticalStrategy."""
+
+    def test_sort_ascending_a_to_z(self, sample_tracks: list[TrackForSorting]):
+        """Ascending: artists sorted A to Z."""
+        strategy = ArtistAlphabeticalStrategy(ascending=True)
+        context = SortContext()
+
+        sorted_tracks = strategy.sort(sample_tracks, context)
+
+        assert sorted_tracks[0].artist_name == "Artist A"
+        assert sorted_tracks[1].artist_name == "Artist B"
+        assert sorted_tracks[2].artist_name == "Artist C"
+        assert sorted_tracks[3].artist_name == "Artist D"
+
+    def test_sort_descending_z_to_a(self, sample_tracks: list[TrackForSorting]):
+        """Descending: artists sorted Z to A."""
+        strategy = ArtistAlphabeticalStrategy(ascending=False)
+        context = SortContext()
+
+        sorted_tracks = strategy.sort(sample_tracks, context)
+
+        assert sorted_tracks[0].artist_name == "Artist D"
+        assert sorted_tracks[1].artist_name == "Artist C"
+        assert sorted_tracks[2].artist_name == "Artist B"
+        assert sorted_tracks[3].artist_name == "Artist A"
+
+    def test_sort_tracks_same_artist_by_album_and_track(self):
+        """Tracks from same artist sorted by album, then track number."""
+        tracks = [
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Track 3 from Album B",
+                artist_name="Artist X",
+                album_name="Album B",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Track 2 from Album A",
+                artist_name="Artist X",
+                album_name="Album A",
+                album_track_number=2,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Track 1 from Album A",
+                artist_name="Artist X",
+                album_name="Album A",
+                album_track_number=1,
+            ),
+        ]
+
+        strategy = ArtistAlphabeticalStrategy(ascending=True)
+        context = SortContext()
+
+        sorted_tracks = strategy.sort(tracks, context)
+
+        assert sorted_tracks[0].title == "Track 1 from Album A"
+        assert sorted_tracks[1].title == "Track 2 from Album A"
+        assert sorted_tracks[2].title == "Track 3 from Album B"
+
+    def test_none_artist_goes_to_end_ascending(self):
+        """Tracks without artist go to end when ascending."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="With Artist",
+                artist_name="Artist Z",
+                album_name="Album",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="No Artist",
+                artist_name=None,
+                album_name="Album",
+                album_track_number=1,
+            ),
+        ]
+
+        strategy = ArtistAlphabeticalStrategy(ascending=True)
+        context = SortContext()
+
+        sorted_tracks = strategy.sort(tracks, context)
+
+        assert sorted_tracks[0].title == "No Artist"  # Empty string sorts first
+        assert sorted_tracks[1].title == "With Artist"
+
+
 class TestCreateStrategy:
     """Tests for the strategy factory."""
 
@@ -145,7 +241,20 @@ class TestCreateStrategy:
         assert isinstance(strategy, AlbumReleaseDateStrategy)
         assert strategy.ascending is False
 
+    def test_create_artist_name_asc(self):
+        """Factory creates ascending artist name strategy."""
+        strategy = create_strategy(SortOption.ARTIST_NAME_ASC)
+        assert isinstance(strategy, ArtistAlphabeticalStrategy)
+        assert strategy.ascending is True
+
+    def test_create_artist_name_desc(self):
+        """Factory creates descending artist name strategy."""
+        strategy = create_strategy(SortOption.ARTIST_NAME_DESC)
+        assert isinstance(strategy, ArtistAlphabeticalStrategy)
+        assert strategy.ascending is False
+
     def test_invalid_sort_option(self):
         """Factory raises error for unknown option."""
         with pytest.raises(ValueError, match="Unknown sort option"):
             create_strategy("invalid_option")
+

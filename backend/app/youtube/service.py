@@ -138,7 +138,6 @@ class YouTubeService:
 
                 # Get release date from first track's upload date (most reliable)
                 release_date = None
-                source = "Track Fallback"
                 album_tracks = album.get("tracks", [])
                 if album_tracks and album_tracks[0].get("videoId"):
                     try:
@@ -157,7 +156,6 @@ class YouTubeService:
                 if not release_date:
                     year = album.get("year", "9999")
                     release_date = f"{year}-01-01"
-                    source = "Year Only"
 
                 # Build track order mapping: video_id -> position AND title -> position
                 track_order_by_id = {}
@@ -177,9 +175,14 @@ class YouTubeService:
                     "track_order_by_title": track_order_by_title,
                 }
 
+                # Get primary artist for logging
+                primary_artist = "Unknown"
+                if album.get("artists"):
+                    primary_artist = album["artists"][0].get("name", "Unknown")
+
                 count_in_playlist = playlist_album_counts.get(album_id, 0)
                 print(
-                    f"[DEBUG] Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Source: {source:<15} | Tracks: {count_in_playlist}"
+                    f"[DEBUG] Artist: {primary_artist:<20} | Album: {album.get('title', 'unknown'):<30} | Date: {release_date} | Tracks: {count_in_playlist}"
                 )
             except Exception as e:
                 print(f"[DEBUG] Failed to fetch album {album_id}: {e}")

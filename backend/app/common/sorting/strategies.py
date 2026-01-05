@@ -50,6 +50,31 @@ class AlbumReleaseDateStrategy(SortStrategy):
         )
 
 
+class ArtistAlphabeticalStrategy(SortStrategy):
+    """Sort tracks by artist name alphabetically, then album, then track number."""
+
+    def __init__(self, ascending: bool = True):
+        self.ascending = ascending
+
+    def sort(
+        self, tracks: list[TrackForSorting], context: SortContext
+    ) -> list[TrackForSorting]:
+        # Defaults: tracks without artist go to end
+        artist_default = "" if self.ascending else "zzz"
+        album_default = "" if self.ascending else "zzz"
+
+        # Sort by (artist_name, album_name, track_number)
+        return sorted(
+            tracks,
+            key=lambda t: (
+                (t.artist_name or artist_default).lower(),
+                (t.album_name or album_default).lower(),
+                t.album_track_number if self.ascending else -t.album_track_number,
+            ),
+            reverse=not self.ascending,
+        )
+
+
 def create_strategy(option: SortOption) -> SortStrategy:
     """Factory function - creates strategy instance per request."""
     match option:
@@ -57,5 +82,10 @@ def create_strategy(option: SortOption) -> SortStrategy:
             return AlbumReleaseDateStrategy(ascending=True)
         case SortOption.ALBUM_RELEASE_DATE_DESC:
             return AlbumReleaseDateStrategy(ascending=False)
+        case SortOption.ARTIST_NAME_ASC:
+            return ArtistAlphabeticalStrategy(ascending=True)
+        case SortOption.ARTIST_NAME_DESC:
+            return ArtistAlphabeticalStrategy(ascending=False)
         case _:
             raise ValueError(f"Unknown sort option: {option}")
+

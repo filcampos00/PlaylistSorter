@@ -9,7 +9,11 @@ export interface Playlist {
     track_count: number | null;
 }
 
-export type SortOption = "album_release_date_asc" | "album_release_date_desc";
+export type SortOption = 
+  | "album_release_date_asc" 
+  | "album_release_date_desc"
+  | "artist_name_asc"
+  | "artist_name_desc";
 
 export interface SortResponse {
     success: boolean;
