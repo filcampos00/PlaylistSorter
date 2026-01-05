@@ -38,7 +38,6 @@ class AlbumReleaseDateStrategy(SortStrategy):
         date_default = "0000-01-01" if not self.ascending else "9999-12-31"
         album_default = "zzz" if not self.ascending else ""
 
-        
         # Sort by (release_date, album_name, track_number)
         return sorted(
             tracks,

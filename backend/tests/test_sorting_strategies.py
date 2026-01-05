@@ -95,28 +95,39 @@ class TestAlbumReleaseDateStrategy:
         """Tracks from the same album should be sorted by album_track_number."""
         tracks = [
             TrackForSorting(
-                video_id="v2", set_video_id="s2", title="Track 2",
-                album_name="Album A", album_release_date="2020-01-01", album_track_number=2
+                video_id="v2",
+                set_video_id="s2",
+                title="Track 2",
+                album_name="Album A",
+                album_release_date="2020-01-01",
+                album_track_number=2,
             ),
             TrackForSorting(
-                video_id="v1", set_video_id="s1", title="Track 1",
-                album_name="Album A", album_release_date="2020-01-01", album_track_number=1
+                video_id="v1",
+                set_video_id="s1",
+                title="Track 1",
+                album_name="Album A",
+                album_release_date="2020-01-01",
+                album_track_number=1,
             ),
             TrackForSorting(
-                video_id="v3", set_video_id="s3", title="Track 3",
-                album_name="Album A", album_release_date="2020-01-01", album_track_number=3
+                video_id="v3",
+                set_video_id="s3",
+                title="Track 3",
+                album_name="Album A",
+                album_release_date="2020-01-01",
+                album_track_number=3,
             ),
         ]
-        
+
         strategy = AlbumReleaseDateStrategy(ascending=True)
         context = SortContext()
-        
+
         sorted_tracks = strategy.sort(tracks, context)
-        
+
         assert sorted_tracks[0].title == "Track 1"
         assert sorted_tracks[1].title == "Track 2"
         assert sorted_tracks[2].title == "Track 3"
-
 
 
 class TestCreateStrategy:

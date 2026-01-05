@@ -73,7 +73,7 @@ async def sort_playlist(
 ):
     """
     Sort a playlist by the specified criteria.
-    
+
     Args:
         playlist_id: The ID of the playlist to sort.
         sort_by: The sorting option (e.g., album_release_date_asc).
@@ -90,4 +90,3 @@ async def sort_playlist(
         return SortResponse(success=False, message=str(e))
     except Exception as e:
         return SortResponse(success=False, message=f"Failed to sort playlist: {str(e)}")
-
