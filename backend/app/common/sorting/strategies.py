@@ -96,6 +96,16 @@ def _get_favourite_artists_key(
     return (rank,)
 
 
+def _get_title_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for track title."""
+    title = (track.title or "").lower()
+    if direction == SortDirection.DESC:
+        return (_NegatedStr(title),)
+    return (title,)
+
+
 # Registry of key extractors per attribute
 _KEY_EXTRACTORS: dict[
     SortAttribute,
@@ -103,6 +113,7 @@ _KEY_EXTRACTORS: dict[
 ] = {
     SortAttribute.ARTIST_NAME: _get_artist_name_key,
     SortAttribute.ALBUM_NAME: _get_album_name_key,
+    SortAttribute.TITLE: _get_title_key,
     SortAttribute.ALBUM_RELEASE_DATE: _get_album_release_date_key,
     SortAttribute.TRACK_NUMBER: _get_track_number_key,
     SortAttribute.FAVOURITE_ARTISTS: _get_favourite_artists_key,

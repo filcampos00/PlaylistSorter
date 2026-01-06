@@ -377,3 +377,165 @@ class TestPresets:
 
         assert result[0].title == "Favourite"
         assert result[1].title == "Non-Fav"
+
+
+class TestTitleSorting:
+    """Tests for title sorting."""
+
+    def test_sort_by_title_asc(self):
+        """Sort by title ascending (A-Z)."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Zebra",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Apple",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Mango",
+                album_track_number=1,
+            ),
+        ]
+        levels = [SortLevel(attribute=SortAttribute.TITLE, direction=SortDirection.ASC)]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        assert result[0].title == "Apple"
+        assert result[1].title == "Mango"
+        assert result[2].title == "Zebra"
+
+    def test_sort_by_title_desc(self):
+        """Sort by title descending (Z-A)."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Apple",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Zebra",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Mango",
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.TITLE, direction=SortDirection.DESC)
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        assert result[0].title == "Zebra"
+        assert result[1].title == "Mango"
+        assert result[2].title == "Apple"
+
+    def test_title_case_insensitive(self):
+        """Title sorting is case-insensitive."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="BANANA",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="apple",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Cherry",
+                album_track_number=1,
+            ),
+        ]
+        levels = [SortLevel(attribute=SortAttribute.TITLE, direction=SortDirection.ASC)]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        assert result[0].title == "apple"
+        assert result[1].title == "BANANA"
+        assert result[2].title == "Cherry"
+
+    def test_multi_level_artist_then_title(self):
+        """Multi-level: Artist A-Z, then Title A-Z."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Song B",
+                artist_name="Artist A",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Song A",
+                artist_name="Artist A",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Song C",
+                artist_name="Artist B",
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
+            SortLevel(attribute=SortAttribute.TITLE, direction=SortDirection.ASC),
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        # Artist A first, then by title
+        assert result[0].title == "Song A"  # Artist A
+        assert result[1].title == "Song B"  # Artist A
+        assert result[2].title == "Song C"  # Artist B
+
+    def test_empty_title_handled(self):
+        """Empty titles are handled gracefully."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Actual Title",
+                album_track_number=1,
+            ),
+        ]
+        levels = [SortLevel(attribute=SortAttribute.TITLE, direction=SortDirection.ASC)]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        # Empty string sorts before "Actual Title"
+        assert result[0].title == ""
+        assert result[1].title == "Actual Title"

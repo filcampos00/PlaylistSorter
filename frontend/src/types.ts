@@ -16,7 +16,8 @@ export type SortAttribute =
   | "album_name"
   | "album_release_date"
   | "track_number"
-  | "favourite_artists";
+  | "favourite_artists"
+  | "title";
 
 export type SortDirection = "asc" | "desc";
 
@@ -75,6 +76,7 @@ export const SORT_ATTRIBUTE_LABELS: Record<SortAttribute, string> = {
   album_release_date: "Album Release Date",
   track_number: "Track Number",
   favourite_artists: "Favourite Artists",
+  title: "Title",
 };
 
 export const SORT_DIRECTION_LABELS: Record<
@@ -86,4 +88,5 @@ export const SORT_DIRECTION_LABELS: Record<
   album_release_date: { asc: "Oldest First", desc: "Newest First" },
   track_number: { asc: "1 → 99", desc: "99 → 1" },
   favourite_artists: { asc: "By Rank", desc: "Reverse Rank" },
+  title: { asc: "A → Z", desc: "Z → A" },
 };

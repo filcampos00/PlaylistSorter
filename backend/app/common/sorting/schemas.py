@@ -13,6 +13,7 @@ class SortAttribute(str, Enum):
     ALBUM_RELEASE_DATE = "album_release_date"
     TRACK_NUMBER = "track_number"
     FAVOURITE_ARTISTS = "favourite_artists"
+    TITLE = "title"
 
 
 class SortDirection(str, Enum):
