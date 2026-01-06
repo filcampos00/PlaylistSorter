@@ -118,6 +118,9 @@ class YouTubeService:
                     album_name=album_name,
                     album_release_date=release_date,
                     album_track_number=track_number,
+                    duration_ms=t.get("duration_seconds", 0) * 1000
+                    if t.get("duration_seconds")
+                    else None,
                 )
             )
 

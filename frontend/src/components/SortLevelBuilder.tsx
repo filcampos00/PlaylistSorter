@@ -22,6 +22,7 @@ const ALL_ATTRIBUTES: SortAttribute[] = [
   "track_number",
   "favourite_artists",
   "title",
+  "duration",
 ];
 
 const PRESETS = [

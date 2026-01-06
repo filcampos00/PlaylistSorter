@@ -539,3 +539,148 @@ class TestTitleSorting:
         # Empty string sorts before "Actual Title"
         assert result[0].title == ""
         assert result[1].title == "Actual Title"
+
+
+class TestDurationSorting:
+    """Tests for duration sorting."""
+
+    def test_sort_by_duration_asc(self):
+        """Sort by duration ascending (shortest first)."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Long Song",
+                duration_ms=300000,  # 5 minutes
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Short Song",
+                duration_ms=120000,  # 2 minutes
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Medium Song",
+                duration_ms=210000,  # 3.5 minutes
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.DURATION, direction=SortDirection.ASC)
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        assert result[0].title == "Short Song"  # 2 min
+        assert result[1].title == "Medium Song"  # 3.5 min
+        assert result[2].title == "Long Song"  # 5 min
+
+    def test_sort_by_duration_desc(self):
+        """Sort by duration descending (longest first)."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Short Song",
+                duration_ms=120000,
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Long Song",
+                duration_ms=300000,
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Medium Song",
+                duration_ms=210000,
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.DURATION, direction=SortDirection.DESC)
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        assert result[0].title == "Long Song"  # 5 min
+        assert result[1].title == "Medium Song"  # 3.5 min
+        assert result[2].title == "Short Song"  # 2 min
+
+    def test_null_duration_goes_to_end(self):
+        """Tracks without duration go to end."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="No Duration",
+                duration_ms=None,
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Has Duration",
+                duration_ms=180000,
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.DURATION, direction=SortDirection.ASC)
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        assert result[0].title == "Has Duration"
+        assert result[1].title == "No Duration"
+
+    def test_multi_level_artist_then_duration(self):
+        """Multi-level: Artist A-Z, then Duration shortest first."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Long A",
+                artist_name="Artist A",
+                duration_ms=300000,
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Short A",
+                artist_name="Artist A",
+                duration_ms=120000,
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Song B",
+                artist_name="Artist B",
+                duration_ms=180000,
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
+            SortLevel(attribute=SortAttribute.DURATION, direction=SortDirection.ASC),
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        # Artist A first, then by duration
+        assert result[0].title == "Short A"  # Artist A, 2 min
+        assert result[1].title == "Long A"  # Artist A, 5 min
+        assert result[2].title == "Song B"  # Artist B

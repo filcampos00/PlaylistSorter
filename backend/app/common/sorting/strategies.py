@@ -106,6 +106,17 @@ def _get_title_key(
     return (title,)
 
 
+def _get_duration_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for track duration."""
+    # Tracks without duration go to end
+    duration = track.duration_ms if track.duration_ms is not None else float("inf")
+    if direction == SortDirection.DESC:
+        return (-duration,)
+    return (duration,)
+
+
 # Registry of key extractors per attribute
 _KEY_EXTRACTORS: dict[
     SortAttribute,
@@ -114,6 +125,7 @@ _KEY_EXTRACTORS: dict[
     SortAttribute.ARTIST_NAME: _get_artist_name_key,
     SortAttribute.ALBUM_NAME: _get_album_name_key,
     SortAttribute.TITLE: _get_title_key,
+    SortAttribute.DURATION: _get_duration_key,
     SortAttribute.ALBUM_RELEASE_DATE: _get_album_release_date_key,
     SortAttribute.TRACK_NUMBER: _get_track_number_key,
     SortAttribute.FAVOURITE_ARTISTS: _get_favourite_artists_key,

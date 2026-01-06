@@ -14,6 +14,7 @@ class SortAttribute(str, Enum):
     TRACK_NUMBER = "track_number"
     FAVOURITE_ARTISTS = "favourite_artists"
     TITLE = "title"
+    DURATION = "duration"
 
 
 class SortDirection(str, Enum):
@@ -40,3 +41,4 @@ class TrackForSorting(BaseModel):
     album_name: str | None = None
     album_release_date: str | None = None  # "YYYY-MM-DD"
     album_track_number: int = 9999  # Track position in album (1-indexed)
+    duration_ms: int | None = None  # Track duration in milliseconds
