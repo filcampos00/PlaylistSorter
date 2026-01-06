@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store";
 import { API_BASE_URL } from "../config";
-import type { Playlist, SortOption } from "../types";
+import { FavouriteArtistsInput } from "../components/FavouriteArtistsInput";
+import type { AlbumOrder, Playlist, SortOption } from "../types";
 import "./DashboardPage.css";
 
 export const DashboardPage = () => {
@@ -15,6 +16,10 @@ export const DashboardPage = () => {
     const [sortBy, setSortBy] = useState<SortOption>("album_release_date_asc");
     const [isSorting, setIsSorting] = useState(false);
     const [sortResult, setSortResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    // Favourite Artists State
+    const [favouriteArtists, setFavouriteArtists] = useState<string[]>([]);
+    const [albumOrder, setAlbumOrder] = useState<AlbumOrder>("newest");
 
     useEffect(() => {
         const fetchPlaylists = async () => {
@@ -47,6 +52,15 @@ export const DashboardPage = () => {
     const handleSort = async () => {
         if (!selectedPlaylistId || !authHeaders) return;
 
+        // Validate: favourite_artists_first requires at least one artist
+        if (sortBy === "favourite_artists_first" && favouriteArtists.length === 0) {
+            setSortResult({
+                success: false,
+                message: "Please add at least one favourite artist",
+            });
+            return;
+        }
+
         setIsSorting(true);
         setSortResult(null);
 
@@ -58,6 +72,8 @@ export const DashboardPage = () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         headers_raw: authHeaders,
+                        favourite_artists: favouriteArtists,
+                        album_order: albumOrder,
                     }),
                 }
             );
@@ -192,7 +208,21 @@ export const DashboardPage = () => {
                                     <option value="artist_name_desc">
                                         Artist Name (Z → A)
                                     </option>
+                                    <option value="favourite_artists_first">
+                                        ⭐ Favourite Artists First
+                                    </option>
                                 </select>
+
+                                {/* Show FavouriteArtistsInput when that option is selected */}
+                                {sortBy === "favourite_artists_first" && (
+                                    <FavouriteArtistsInput
+                                        value={favouriteArtists}
+                                        onChange={setFavouriteArtists}
+                                        albumOrder={albumOrder}
+                                        onAlbumOrderChange={setAlbumOrder}
+                                        disabled={isSorting}
+                                    />
+                                )}
                             </div>
 
                             <div className="sort-actions">

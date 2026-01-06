@@ -294,6 +294,7 @@ class YouTubeService:
             return len(sorted_tracks)  # N tracks reordered
         except Exception as add_error:
             # Add failed - try to restore original tracks
+            logger.error(f"Failed to add sorted tracks: {add_error}")
             try:
                 await asyncio.to_thread(
                     self._client.add_playlist_items,
@@ -301,13 +302,20 @@ class YouTubeService:
                     [t.video_id for t in original],
                     duplicates=True,
                 )
+                # User-friendly message - log the technical details
+                logger.error(f"Restore successful after add failure: {add_error}")
                 raise ValueError(
-                    f"Sort failed, original tracks restored. Error: {add_error}"
+                    "YouTube Music rejected the changes. This can happen due to rate limiting "
+                    "or sync conflicts. Please wait a moment and try again."
                 )
             except Exception as restore_error:
+                logger.critical(
+                    f"CRITICAL: Sort and restore both failed! "
+                    f"Add error: {add_error}, Restore error: {restore_error}"
+                )
                 raise ValueError(
-                    f"CRITICAL: Sort failed and restore failed! "
-                    f"Original error: {add_error}, Restore error: {restore_error}"
+                    "Something went wrong and we couldn't restore the original order. "
+                    "Please check your playlist in YouTube Music."
                 )
 
     def _parse_youtube_headers(self, raw: str) -> dict | None:

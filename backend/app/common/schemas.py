@@ -39,6 +39,25 @@ class PlaylistsResponse(BaseModel):
     playlists: list[Playlist] = []
 
 
+class SortRequest(BaseModel):
+    """Request body for sorting a playlist."""
+
+    headers_raw: str = Field(
+        ...,
+        min_length=1,
+        max_length=50000,
+        description="Raw HTTP headers copied from browser DevTools",
+    )
+    favourite_artists: list[str] = Field(
+        default=[],
+        description="Optional list of favourite artist names for sorting",
+    )
+    album_order: str = Field(
+        default="newest",
+        description="Album sort order: 'newest' or 'oldest'",
+    )
+
+
 class SortResponse(BaseModel):
     """Response from sorting a playlist."""
 

@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, Depends
 
-from ..common.schemas import AuthTestResponse, PlaylistsResponse, SortResponse
+from ..common.schemas import AuthTestResponse, PlaylistsResponse, SortRequest, SortResponse
 from ..common.sorting import SortContext, SortOption
-from .dependencies import get_youtube_service, get_strategy, get_sort_context
+from .dependencies import get_youtube_service, get_strategy
 from .service import YouTubeService
 
 router = APIRouter(prefix="/youtube", tags=["YouTube Music"])
@@ -68,17 +68,30 @@ async def get_playlists(youtube: YouTubeService = Depends(get_youtube_service)):
 async def sort_playlist(
     playlist_id: str,
     sort_by: SortOption,
-    youtube: YouTubeService = Depends(get_youtube_service),
-    context: SortContext = Depends(get_sort_context),
+    payload: SortRequest,
 ):
     """
     Sort a playlist by the specified criteria.
 
     Args:
         playlist_id: The ID of the playlist to sort.
-        sort_by: The sorting option (e.g., album_release_date_asc).
+        sort_by: The sorting option (e.g., album_release_date_asc, favourite_artists_first).
+        payload: Request body containing headers and optional favourite_artists list.
     """
     try:
+        # Create YouTube service from headers
+        youtube = YouTubeService(payload.headers_raw)
+
+        # Build artist rankings from favourite_artists list
+        # Lower rank = higher priority (appears first)
+        artist_rankings = {
+            artist: idx for idx, artist in enumerate(payload.favourite_artists)
+        }
+        context = SortContext(
+            artist_rankings=artist_rankings,
+            album_order=payload.album_order,
+        )
+
         strategy = get_strategy(sort_by)
         count = await youtube.sort_playlist(playlist_id, strategy, context)
 
@@ -88,6 +101,7 @@ async def sort_playlist(
             SortOption.ALBUM_RELEASE_DATE_DESC: "album release date (newest first)",
             SortOption.ARTIST_NAME_ASC: "artist name (A → Z)",
             SortOption.ARTIST_NAME_DESC: "artist name (Z → A)",
+            SortOption.FAVOURITE_ARTISTS_FIRST: "favourite artists first",
         }
         label = sort_labels.get(sort_by, sort_by.value)
 

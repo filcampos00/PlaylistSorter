@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .youtube.controller import router as youtube_router
+from .lastfm.router import router as lastfm_router
 from .core.logging import setup_logging
 
 app = FastAPI(title="Playlist Sorter")
@@ -34,6 +35,7 @@ async def health_check():
 
 # Register platform-specific routers
 app.include_router(youtube_router)
+app.include_router(lastfm_router)
 
 # Future: app.include_router(spotify_router)
 

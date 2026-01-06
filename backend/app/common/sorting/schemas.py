@@ -12,6 +12,7 @@ class SortOption(str, Enum):
     ALBUM_RELEASE_DATE_DESC = "album_release_date_desc"
     ARTIST_NAME_ASC = "artist_name_asc"
     ARTIST_NAME_DESC = "artist_name_desc"
+    FAVOURITE_ARTISTS_FIRST = "favourite_artists_first"
 
 
 class TrackForSorting(BaseModel):

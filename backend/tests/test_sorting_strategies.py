@@ -6,6 +6,7 @@ from app.common.sorting.schemas import SortOption, TrackForSorting
 from app.common.sorting.strategies import (
     AlbumReleaseDateStrategy,
     ArtistAlphabeticalStrategy,
+    FavouriteArtistsStrategy,
     SortContext,
     create_strategy,
 )
@@ -257,3 +258,146 @@ class TestCreateStrategy:
         """Factory raises error for unknown option."""
         with pytest.raises(ValueError, match="Unknown sort option"):
             create_strategy("invalid_option")
+
+    def test_create_favourite_artists_strategy(self):
+        """Factory creates favourite artists strategy."""
+        strategy = create_strategy(SortOption.FAVOURITE_ARTISTS_FIRST)
+        assert isinstance(strategy, FavouriteArtistsStrategy)
+
+
+class TestFavouriteArtistsStrategy:
+    """Tests for FavouriteArtistsStrategy."""
+
+    def test_favourite_artists_first(self, sample_tracks: list[TrackForSorting]):
+        """Favourite artists appear before non-favourites."""
+        strategy = FavouriteArtistsStrategy()
+        # Artist C is favourite (rank 0), Artist A is second favourite (rank 1)
+        context = SortContext(artist_rankings={"Artist C": 0, "Artist A": 1})
+
+        sorted_tracks = strategy.sort(sample_tracks, context)
+
+        # Artist C should be first, Artist A second
+        assert sorted_tracks[0].artist_name == "Artist C"
+        assert sorted_tracks[1].artist_name == "Artist A"
+        # Non-favourites (B, D) sorted alphabetically after favourites
+        assert sorted_tracks[2].artist_name == "Artist B"
+        assert sorted_tracks[3].artist_name == "Artist D"
+
+    def test_empty_rankings_sorts_alphabetically(self, sample_tracks: list[TrackForSorting]):
+        """With no favourites, falls back to alphabetical order."""
+        strategy = FavouriteArtistsStrategy()
+        context = SortContext(artist_rankings={})
+
+        sorted_tracks = strategy.sort(sample_tracks, context)
+
+        # All artists have rank infinity, so sorted alphabetically
+        assert sorted_tracks[0].artist_name == "Artist A"
+        assert sorted_tracks[1].artist_name == "Artist B"
+        assert sorted_tracks[2].artist_name == "Artist C"
+        assert sorted_tracks[3].artist_name == "Artist D"
+
+    def test_case_insensitive_matching(self):
+        """Artist matching is case-insensitive."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Track 1",
+                artist_name="METALLICA",
+                album_name="Album",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Track 2",
+                artist_name="queen",
+                album_name="Album",
+                album_track_number=1,
+            ),
+        ]
+
+        strategy = FavouriteArtistsStrategy()
+        # Different case in rankings
+        context = SortContext(artist_rankings={"Queen": 0, "metallica": 1})
+
+        sorted_tracks = strategy.sort(tracks, context)
+
+        # Queen should be first despite case difference
+        assert sorted_tracks[0].artist_name == "queen"
+        assert sorted_tracks[1].artist_name == "METALLICA"
+
+    def test_same_favourite_artist_sorted_by_album_release_date(self):
+        """Tracks from same favourite artist are sorted by album release date then track number."""
+        tracks = [
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Track 2",
+                artist_name="Queen",
+                album_name="Newer Album",
+                album_release_date="2020-01-01",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Track 1",
+                artist_name="Queen",
+                album_name="Oldest Album",
+                album_release_date="2010-01-01",
+                album_track_number=2,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="Track 3",
+                artist_name="Queen",
+                album_name="Oldest Album",
+                album_release_date="2010-01-01",
+                album_track_number=1,
+            ),
+        ]
+
+        strategy = FavouriteArtistsStrategy()
+        
+        # Test with oldest albums first
+        context = SortContext(artist_rankings={"Queen": 0}, album_order="oldest")
+        sorted_tracks = strategy.sort(tracks, context)
+
+        # Oldest first: 2010 album tracks first (by track number), then 2020 album
+        assert sorted_tracks[0].title == "Track 3"  # 2010, track 1
+        assert sorted_tracks[1].title == "Track 1"  # 2010, track 2
+        assert sorted_tracks[2].title == "Track 2"  # 2020, track 1
+
+    def test_newest_albums_first(self):
+        """Test newest albums first sorting within favourite artist."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Old Track",
+                artist_name="Queen",
+                album_name="Old Album",
+                album_release_date="2010-01-01",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="New Track",
+                artist_name="Queen",
+                album_name="New Album",
+                album_release_date="2020-01-01",
+                album_track_number=1,
+            ),
+        ]
+
+        strategy = FavouriteArtistsStrategy()
+        context = SortContext(artist_rankings={"Queen": 0}, album_order="newest")
+
+        sorted_tracks = strategy.sort(tracks, context)
+
+        # Newest first: 2020 album should come before 2010
+        assert sorted_tracks[0].title == "New Track"  # 2020
+        assert sorted_tracks[1].title == "Old Track"  # 2010

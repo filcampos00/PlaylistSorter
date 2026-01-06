@@ -3,3 +3,4 @@ uvicorn
 ytmusicapi
 pydantic
 python-dotenv
+httpx
