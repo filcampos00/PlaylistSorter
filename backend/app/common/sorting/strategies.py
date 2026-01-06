@@ -102,24 +102,27 @@ class FavouriteArtistsStrategy(SortStrategy):
             artist = (track.artist_name or "").lower()
             # Get rank from normalized rankings, default to infinity
             rank = normalized_rankings.get(artist, float("inf"))
-            
+
             # Get release date for sorting
             release_date = track.album_release_date or date_default
-            
+
             return (
                 rank,
                 artist,
-                release_date if not newest_first else f"_{release_date}",  # Prefix for reverse
+                release_date
+                if not newest_first
+                else f"_{release_date}",  # Prefix for reverse
                 track.album_track_number,
             )
 
         # Sort, then reverse album dates if newest first
         sorted_tracks = sorted(tracks, key=get_sort_key, reverse=newest_first)
-        
+
         # For newest_first, we need a more sophisticated approach
         # because we want rank ASC, but date DESC
         # Let's use a cleaner approach:
         if newest_first:
+
             def get_sort_key_newest(track: TrackForSorting):
                 artist = (track.artist_name or "").lower()
                 rank = normalized_rankings.get(artist, float("inf"))
@@ -130,6 +133,7 @@ class FavouriteArtistsStrategy(SortStrategy):
                     release_date,  # Will be reversed within groups
                     -track.album_track_number,  # Negative for reverse
                 )
+
             # Sort by rank/artist ASC, then by date DESC, track DESC
             # Use tuple negation trick: sort by (rank, artist, -date, -track)
             # Since dates are strings, we need a different approach
@@ -137,10 +141,15 @@ class FavouriteArtistsStrategy(SortStrategy):
             sorted_tracks = sorted(
                 tracks,
                 key=lambda t: (
-                    normalized_rankings.get((t.artist_name or "").lower(), float("inf")),
+                    normalized_rankings.get(
+                        (t.artist_name or "").lower(), float("inf")
+                    ),
                     (t.artist_name or "").lower(),
                     # Invert date string for descending order
-                    "".join(chr(255 - ord(c)) for c in (t.album_release_date or "0000-01-01")),
+                    "".join(
+                        chr(255 - ord(c))
+                        for c in (t.album_release_date or "0000-01-01")
+                    ),
                     t.album_track_number,
                 ),
             )
@@ -148,13 +157,15 @@ class FavouriteArtistsStrategy(SortStrategy):
             sorted_tracks = sorted(
                 tracks,
                 key=lambda t: (
-                    normalized_rankings.get((t.artist_name or "").lower(), float("inf")),
+                    normalized_rankings.get(
+                        (t.artist_name or "").lower(), float("inf")
+                    ),
                     (t.artist_name or "").lower(),
                     t.album_release_date or "9999-12-31",
                     t.album_track_number,
                 ),
             )
-        
+
         return sorted_tracks
 
 

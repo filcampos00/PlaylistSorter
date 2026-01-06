@@ -2,7 +2,12 @@
 
 from fastapi import APIRouter, Depends
 
-from ..common.schemas import AuthTestResponse, PlaylistsResponse, SortRequest, SortResponse
+from ..common.schemas import (
+    AuthTestResponse,
+    PlaylistsResponse,
+    SortRequest,
+    SortResponse,
+)
 from ..common.sorting import SortContext, SortOption
 from .dependencies import get_youtube_service, get_strategy
 from .service import YouTubeService

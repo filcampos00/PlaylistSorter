@@ -283,7 +283,9 @@ class TestFavouriteArtistsStrategy:
         assert sorted_tracks[2].artist_name == "Artist B"
         assert sorted_tracks[3].artist_name == "Artist D"
 
-    def test_empty_rankings_sorts_alphabetically(self, sample_tracks: list[TrackForSorting]):
+    def test_empty_rankings_sorts_alphabetically(
+        self, sample_tracks: list[TrackForSorting]
+    ):
         """With no favourites, falls back to alphabetical order."""
         strategy = FavouriteArtistsStrategy()
         context = SortContext(artist_rankings={})
@@ -360,7 +362,7 @@ class TestFavouriteArtistsStrategy:
         ]
 
         strategy = FavouriteArtistsStrategy()
-        
+
         # Test with oldest albums first
         context = SortContext(artist_rankings={"Queen": 0}, album_order="oldest")
         sorted_tracks = strategy.sort(tracks, context)
