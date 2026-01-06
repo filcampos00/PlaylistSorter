@@ -2,265 +2,277 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "../store";
 import { API_BASE_URL } from "../config";
 import { FavouriteArtistsInput } from "../components/FavouriteArtistsInput";
-import type { AlbumOrder, Playlist, SortOption } from "../types";
+import { SortLevelBuilder } from "../components/SortLevelBuilder";
+import type { Playlist, SortLevel } from "../types";
+import { PRESET_DISCOGRAPHY } from "../types";
 import "./DashboardPage.css";
 
 export const DashboardPage = () => {
-    const { channelName, authHeaders, logout } = useAuthStore();
-    const [playlists, setPlaylists] = useState<Playlist[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const { channelName, authHeaders, logout } = useAuthStore();
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // Sorting State
-    const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
-    const [sortBy, setSortBy] = useState<SortOption>("album_release_date_asc");
-    const [isSorting, setIsSorting] = useState(false);
-    const [sortResult, setSortResult] = useState<{ success: boolean; message: string } | null>(null);
+  // Sorting State
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(
+    null,
+  );
+  const [sortLevels, setSortLevels] = useState<SortLevel[]>(PRESET_DISCOGRAPHY);
+  const [isSorting, setIsSorting] = useState(false);
+  const [sortResult, setSortResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
 
-    // Favourite Artists State
-    const [favouriteArtists, setFavouriteArtists] = useState<string[]>([]);
-    const [albumOrder, setAlbumOrder] = useState<AlbumOrder>("newest");
+  // Favourite Artists State
+  const [favouriteArtists, setFavouriteArtists] = useState<string[]>([]);
 
-    useEffect(() => {
-        const fetchPlaylists = async () => {
-            if (!authHeaders) return;
+  // Check if favourite_artists is in any sort level
+  const hasFavouritesLevel = sortLevels.some(
+    (level) => level.attribute === "favourite_artists",
+  );
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/youtube/playlists`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ headers_raw: authHeaders }),
-                });
+  useEffect(() => {
+    const fetchPlaylists = async () => {
+      if (!authHeaders) return;
 
-                const data = await response.json();
+      try {
+        const response = await fetch(`${API_BASE_URL}/youtube/playlists`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ headers_raw: authHeaders }),
+        });
 
-                if (data.success) {
-                    setPlaylists(data.playlists);
-                } else {
-                    setError(data.message);
-                }
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to fetch playlists");
-            } finally {
-                setIsLoading(false);
-            }
-        };
+        const data = await response.json();
 
-        fetchPlaylists();
-    }, [authHeaders]);
-
-    const handleSort = async () => {
-        if (!selectedPlaylistId || !authHeaders) return;
-
-        // Validate: favourite_artists_first requires at least one artist
-        if (sortBy === "favourite_artists_first" && favouriteArtists.length === 0) {
-            setSortResult({
-                success: false,
-                message: "Please add at least one favourite artist",
-            });
-            return;
+        if (data.success) {
+          setPlaylists(data.playlists);
+        } else {
+          setError(data.message);
         }
-
-        setIsSorting(true);
-        setSortResult(null);
-
-        try {
-            const response = await fetch(
-                `${API_BASE_URL}/youtube/playlists/${selectedPlaylistId}/sort?sort_by=${sortBy}`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        headers_raw: authHeaders,
-                        favourite_artists: favouriteArtists,
-                        album_order: albumOrder,
-                    }),
-                }
-            );
-
-            const data = await response.json();
-
-            setSortResult({
-                success: data.success,
-                message: data.message,
-            });
-
-            // Clear selection on success after delay
-            if (data.success) {
-                setTimeout(() => {
-                    setSortResult(null);
-                    setSelectedPlaylistId(null);
-                }, 6000);
-            }
-        } catch (err) {
-            setSortResult({
-                success: false,
-                message: err instanceof Error ? err.message : "Sort failed",
-            });
-        } finally {
-            setIsSorting(false);
-        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch playlists",
+        );
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    const selectedPlaylist = playlists.find((p) => p.playlist_id === selectedPlaylistId);
+    fetchPlaylists();
+  }, [authHeaders]);
 
-    return (
-        <div className="dashboard-page">
-            {/* Background Ambience */}
-            <div className="bg-orb orb-primary" />
-            <div className="bg-orb orb-secondary" />
+  const handleSort = async () => {
+    if (!selectedPlaylistId || !authHeaders) return;
 
-            <div className="dashboard-container fade-in">
-                <header className="dashboard-header">
-                    <h1>🎵 Playlist Sorter</h1>
-                    <div className="user-info">
-                        <span className="channel-name">{channelName || "Connected"}</span>
-                        <button className="btn btn-outline btn-sm" onClick={logout}>
-                            Logout
-                        </button>
-                    </div>
-                </header>
+    // Validate: favourite_artists requires at least one artist
+    if (hasFavouritesLevel && favouriteArtists.length === 0) {
+      setSortResult({
+        success: false,
+        message: "Please add at least one favourite artist",
+      });
+      return;
+    }
 
-                <main className="dashboard-content">
-                    {isLoading ? (
-                        <div className="loading-state">
-                            <div className="spinner" />
-                            <p>Loading your playlists...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="error-state">
-                            <p>⚠️ {error}</p>
-                            <button
-                                className="btn btn-outline"
-                                onClick={() => window.location.reload()}
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    ) : playlists.length === 0 ? (
-                        <div className="empty-state">
-                            <p>No playlists found.</p>
-                        </div>
-                    ) : (
-                        <div className="playlists-grid">
-                            {playlists.map((playlist) => (
-                                <div
-                                    key={playlist.playlist_id}
-                                    className={`playlist-card ${selectedPlaylistId === playlist.playlist_id ? "selected" : ""
-                                        }`}
-                                    onClick={() => {
-                                        setSelectedPlaylistId(playlist.playlist_id);
-                                        setSortResult(null);
-                                    }}
-                                >
-                                    <div className="playlist-thumbnail">
-                                        {playlist.thumbnail_url ? (
-                                            <img
-                                                src={playlist.thumbnail_url}
-                                                alt={playlist.title}
-                                                onError={(e) => {
-                                                    // Replace broken image with placeholder
-                                                    e.currentTarget.style.display = 'none';
-                                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                                }}
-                                            />
-                                        ) : null}
-                                        <div className={`placeholder-thumbnail ${playlist.thumbnail_url ? 'hidden' : ''}`}>
-                                            🎵
-                                        </div>
-                                    </div>
-                                    <div className="playlist-info">
-                                        <h3>{playlist.title}</h3>
-                                        {playlist.track_count !== null && (
-                                            <p className="track-count">{playlist.track_count} tracks</p>
-                                        )}
-                                    </div>
-                                    {selectedPlaylistId === playlist.playlist_id && (
-                                        <div className="selection-badge">✔ Selected</div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </main>
+    setIsSorting(true);
+    setSortResult(null);
 
-                {/* Floating Sort Controls */}
-                {selectedPlaylistId && selectedPlaylist && (
-                    <div className="sort-controls-panel slide-up">
-                        <div className="sort-controls-content">
-                            <div className="sort-info">
-                                <span className="sort-label">Sort <strong>{selectedPlaylist.title}</strong> by:</span>
-                                <select
-                                    className="sort-select"
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value as SortOption)}
-                                    disabled={isSorting}
-                                >
-                                    <option value="album_release_date_asc">
-                                        Album Release Date (Oldest First)
-                                    </option>
-                                    <option value="album_release_date_desc">
-                                        Album Release Date (Newest First)
-                                    </option>
-                                    <option value="artist_name_asc">
-                                        Artist Name (A → Z)
-                                    </option>
-                                    <option value="artist_name_desc">
-                                        Artist Name (Z → A)
-                                    </option>
-                                    <option value="favourite_artists_first">
-                                        ⭐ Favourite Artists First
-                                    </option>
-                                </select>
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/youtube/playlists/${selectedPlaylistId}/sort`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            headers_raw: authHeaders,
+            sort_levels: sortLevels,
+            favourite_artists: hasFavouritesLevel ? favouriteArtists : [],
+          }),
+        },
+      );
 
-                                {/* Show FavouriteArtistsInput when that option is selected */}
-                                {sortBy === "favourite_artists_first" && (
-                                    <FavouriteArtistsInput
-                                        value={favouriteArtists}
-                                        onChange={setFavouriteArtists}
-                                        albumOrder={albumOrder}
-                                        onAlbumOrderChange={setAlbumOrder}
-                                        disabled={isSorting}
-                                    />
-                                )}
-                            </div>
+      const data = await response.json();
 
-                            <div className="sort-actions">
-                                <button
-                                    className="btn btn-primary sort-btn"
-                                    onClick={handleSort}
-                                    disabled={isSorting}
-                                >
-                                    {isSorting ? "Sorting..." : "Sort Now"}
-                                </button>
-                                <button
-                                    className="btn btn-outline cancel-btn"
-                                    onClick={() => setSelectedPlaylistId(null)}
-                                    disabled={isSorting}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
+      setSortResult({
+        success: data.success,
+        message: data.message,
+      });
 
-                        {sortResult && (
-                            <div className={`sort-result-toast ${sortResult.success ? "success" : "error"}`}>
-                                <span>{sortResult.success ? "✅" : "⚠️"} {sortResult.message}</span>
-                                <button
-                                    className="toast-dismiss"
-                                    onClick={() => {
-                                        setSortResult(null);
-                                        setSelectedPlaylistId(null);
-                                    }}
-                                    aria-label="Dismiss"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
+      // Clear selection on success after delay
+      if (data.success) {
+        setTimeout(() => {
+          setSortResult(null);
+          setSelectedPlaylistId(null);
+        }, 6000);
+      }
+    } catch (err) {
+      setSortResult({
+        success: false,
+        message: err instanceof Error ? err.message : "Sort failed",
+      });
+    } finally {
+      setIsSorting(false);
+    }
+  };
+
+  const selectedPlaylist = playlists.find(
+    (p) => p.playlist_id === selectedPlaylistId,
+  );
+
+  return (
+    <div className="dashboard-page">
+      {/* Background Ambience */}
+      <div className="bg-orb orb-primary" />
+      <div className="bg-orb orb-secondary" />
+
+      <div className="dashboard-container fade-in">
+        <header className="dashboard-header">
+          <h1>🎵 Playlist Sorter</h1>
+          <div className="user-info">
+            <span className="channel-name">{channelName || "Connected"}</span>
+            <button className="btn btn-outline btn-sm" onClick={logout}>
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <main className="dashboard-content">
+          {isLoading ? (
+            <div className="loading-state">
+              <div className="spinner" />
+              <p>Loading your playlists...</p>
             </div>
-        </div>
-    );
+          ) : error ? (
+            <div className="error-state">
+              <p>⚠️ {error}</p>
+              <button
+                className="btn btn-outline"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </button>
+            </div>
+          ) : playlists.length === 0 ? (
+            <div className="empty-state">
+              <p>No playlists found.</p>
+            </div>
+          ) : (
+            <div className="playlists-grid">
+              {playlists.map((playlist) => (
+                <div
+                  key={playlist.playlist_id}
+                  className={`playlist-card ${
+                    selectedPlaylistId === playlist.playlist_id
+                      ? "selected"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedPlaylistId(playlist.playlist_id);
+                    setSortResult(null);
+                  }}
+                >
+                  <div className="playlist-thumbnail">
+                    {playlist.thumbnail_url ? (
+                      <img
+                        src={playlist.thumbnail_url}
+                        alt={playlist.title}
+                        onError={(e) => {
+                          // Replace broken image with placeholder
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.nextElementSibling?.classList.remove(
+                            "hidden",
+                          );
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`placeholder-thumbnail ${playlist.thumbnail_url ? "hidden" : ""}`}
+                    >
+                      🎵
+                    </div>
+                  </div>
+                  <div className="playlist-info">
+                    <h3>{playlist.title}</h3>
+                    {playlist.track_count !== null && (
+                      <p className="track-count">
+                        {playlist.track_count} tracks
+                      </p>
+                    )}
+                  </div>
+                  {selectedPlaylistId === playlist.playlist_id && (
+                    <div className="selection-badge">✔ Selected</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+
+        {/* Floating Sort Controls */}
+        {selectedPlaylistId && selectedPlaylist && (
+          <div className="sort-controls-panel slide-up">
+            <div className="sort-controls-content">
+              <div className="sort-info">
+                <span className="sort-label">
+                  Sort <strong>{selectedPlaylist.title}</strong>
+                </span>
+
+                <SortLevelBuilder
+                  value={sortLevels}
+                  onChange={setSortLevels}
+                  disabled={isSorting}
+                />
+
+                {/* Show FavouriteArtistsInput when favourite_artists is in levels */}
+                {hasFavouritesLevel && (
+                  <FavouriteArtistsInput
+                    value={favouriteArtists}
+                    onChange={setFavouriteArtists}
+                    disabled={isSorting}
+                  />
+                )}
+              </div>
+
+              <div className="sort-actions">
+                <button
+                  className="btn btn-primary sort-btn"
+                  onClick={handleSort}
+                  disabled={isSorting}
+                >
+                  {isSorting ? "Sorting..." : "Sort Now"}
+                </button>
+                <button
+                  className="btn btn-outline cancel-btn"
+                  onClick={() => setSelectedPlaylistId(null)}
+                  disabled={isSorting}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            {sortResult && (
+              <div
+                className={`sort-result-toast ${sortResult.success ? "success" : "error"}`}
+              >
+                <span>
+                  {sortResult.success ? "✅" : "⚠️"} {sortResult.message}
+                </span>
+                <button
+                  className="toast-dismiss"
+                  onClick={() => {
+                    setSortResult(null);
+                    setSelectedPlaylistId(null);
+                  }}
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };

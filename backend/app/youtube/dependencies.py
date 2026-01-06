@@ -1,7 +1,7 @@
 """FastAPI dependencies for YouTube Music module."""
 
 from ..common.schemas import AuthHeaders
-from ..common.sorting import SortContext, SortOption, SortStrategy, create_strategy
+from ..common.sorting import SortContext
 from .service import YouTubeService
 
 
@@ -24,8 +24,3 @@ def get_youtube_service(payload: AuthHeaders) -> YouTubeService:
 def get_sort_context() -> SortContext:
     """Provide sorting context. Extend later for user preferences."""
     return SortContext()
-
-
-def get_strategy(sort_by: SortOption) -> SortStrategy:
-    """Factory-based strategy provider."""
-    return create_strategy(sort_by)

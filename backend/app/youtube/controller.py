@@ -10,8 +10,8 @@ from ..common.schemas import (
     SortRequest,
     SortResponse,
 )
-from ..common.sorting import SortContext, SortOption
-from .dependencies import get_youtube_service, get_strategy
+from ..common.sorting import SortAttribute, SortContext
+from .dependencies import get_youtube_service
 from .service import YouTubeService
 
 router = APIRouter(prefix="/youtube", tags=["YouTube Music"])
@@ -75,16 +75,14 @@ async def get_playlists(youtube: YouTubeService = Depends(get_youtube_service)):
 @router.post("/playlists/{playlist_id}/sort", response_model=SortResponse)
 async def sort_playlist(
     playlist_id: str,
-    sort_by: SortOption,
     payload: SortRequest,
 ):
     """
-    Sort a playlist by the specified criteria.
+    Sort a playlist by the specified criteria using multi-level sorting.
 
     Args:
         playlist_id: The ID of the playlist to sort.
-        sort_by: The sorting option (e.g., album_release_date_asc, favourite_artists_first).
-        payload: Request body containing headers and optional favourite_artists list.
+        payload: Request body containing headers, sort_levels, and optional favourite_artists.
     """
     try:
         # Create YouTube service from headers
@@ -95,28 +93,31 @@ async def sort_playlist(
         artist_rankings = {
             artist: idx for idx, artist in enumerate(payload.favourite_artists)
         }
+
+        # Only populate rankings if favourite_artists is used in sort_levels
+        has_favourites_level = any(
+            level.attribute == SortAttribute.FAVOURITE_ARTISTS
+            for level in payload.sort_levels
+        )
         context = SortContext(
-            artist_rankings=artist_rankings,
-            album_order=payload.album_order,
+            artist_rankings=artist_rankings if has_favourites_level else {},
         )
 
-        strategy = get_strategy(sort_by)
-        count = await youtube.sort_playlist(playlist_id, strategy, context)
+        count = await youtube.sort_playlist(playlist_id, payload.sort_levels, context)
 
-        # User-friendly labels for success message
-        sort_labels = {
-            SortOption.ALBUM_RELEASE_DATE_ASC: "album release date (oldest first)",
-            SortOption.ALBUM_RELEASE_DATE_DESC: "album release date (newest first)",
-            SortOption.ARTIST_NAME_ASC: "artist name (A → Z)",
-            SortOption.ARTIST_NAME_DESC: "artist name (Z → A)",
-            SortOption.FAVOURITE_ARTISTS_FIRST: "favourite artists first",
-        }
-        label = sort_labels.get(sort_by, sort_by.value)
-
+        # Build user-friendly message
         if count == 0:
-            message = f"Playlist is already sorted by {label}"
+            message = "Playlist is already sorted"
         else:
-            message = f"Sorted {count} tracks by {label}"
+            # Describe sort levels
+            level_names = [
+                level.attribute.value.replace("_", " ") for level in payload.sort_levels
+            ]
+            if len(level_names) == 1:
+                sort_desc = level_names[0]
+            else:
+                sort_desc = f"{level_names[0]} (then {', '.join(level_names[1:])})"
+            message = f"Sorted {count} tracks by {sort_desc}"
 
         return SortResponse(
             success=True,

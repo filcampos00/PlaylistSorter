@@ -1,20 +1,25 @@
-"""Unit tests for sorting strategies."""
+"""Unit tests for multi-level sorting."""
 
 import pytest
 
-from app.common.sorting.schemas import SortOption, TrackForSorting
+from app.common.sorting.schemas import (
+    SortAttribute,
+    SortDirection,
+    SortLevel,
+    TrackForSorting,
+)
 from app.common.sorting.strategies import (
-    AlbumReleaseDateStrategy,
-    ArtistAlphabeticalStrategy,
-    FavouriteArtistsStrategy,
     SortContext,
-    create_strategy,
+    multi_level_sort,
+    PRESET_DISCOGRAPHY,
+    PRESET_LATEST_RELEASES,
+    PRESET_FAVOURITES_FIRST,
 )
 
 
 @pytest.fixture
 def sample_tracks() -> list[TrackForSorting]:
-    """Sample tracks with varying album release dates."""
+    """Sample tracks with varying attributes."""
     return [
         TrackForSorting(
             video_id="vid1",
@@ -55,58 +60,128 @@ def sample_tracks() -> list[TrackForSorting]:
     ]
 
 
-class TestAlbumReleaseDateStrategy:
-    """Tests for AlbumReleaseDateStrategy."""
+class TestMultiLevelSort:
+    """Tests for multi_level_sort function."""
 
-    def test_sort_ascending_oldest_first(self, sample_tracks: list[TrackForSorting]):
-        """Ascending: oldest albums first."""
-        strategy = AlbumReleaseDateStrategy(ascending=True)
+    def test_sort_by_artist_asc(self, sample_tracks: list[TrackForSorting]):
+        """Sort by artist name ascending."""
+        levels = [
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC)
+        ]
         context = SortContext()
 
-        sorted_tracks = strategy.sort(sample_tracks, context)
+        result = multi_level_sort(sample_tracks, levels, context)
 
-        assert sorted_tracks[0].album_release_date == "2018-01-01"
-        assert sorted_tracks[1].album_release_date == "2020-05-15"
-        assert sorted_tracks[2].album_release_date == "2023-11-20"
-        # Tracks without date go to end (default 9999)
-        assert sorted_tracks[3].album_release_date is None
+        assert result[0].artist_name == "Artist A"
+        assert result[1].artist_name == "Artist B"
+        assert result[2].artist_name == "Artist C"
+        assert result[3].artist_name == "Artist D"
 
-    def test_sort_descending_newest_first(self, sample_tracks: list[TrackForSorting]):
-        """Descending: newest albums first."""
-        strategy = AlbumReleaseDateStrategy(ascending=False)
+    def test_sort_by_artist_desc(self, sample_tracks: list[TrackForSorting]):
+        """Sort by artist name descending."""
+        levels = [
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.DESC)
+        ]
         context = SortContext()
 
-        sorted_tracks = strategy.sort(sample_tracks, context)
+        result = multi_level_sort(sample_tracks, levels, context)
 
-        assert sorted_tracks[0].album_release_date == "2023-11-20"
-        assert sorted_tracks[1].album_release_date == "2020-05-15"
-        assert sorted_tracks[2].album_release_date == "2018-01-01"
-        # Tracks without date go to end (default 0000)
-        assert sorted_tracks[3].album_release_date is None
+        assert result[0].artist_name == "Artist D"
+        assert result[1].artist_name == "Artist C"
+        assert result[2].artist_name == "Artist B"
+        assert result[3].artist_name == "Artist A"
 
-    def test_empty_list(self):
-        """Sorting empty list returns empty list."""
-        strategy = AlbumReleaseDateStrategy(ascending=True)
+    def test_sort_by_album_date_asc(self, sample_tracks: list[TrackForSorting]):
+        """Sort by album release date ascending (oldest first)."""
+        levels = [
+            SortLevel(
+                attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.ASC
+            )
+        ]
         context = SortContext()
 
-        sorted_tracks = strategy.sort([], context)
+        result = multi_level_sort(sample_tracks, levels, context)
 
-        assert sorted_tracks == []
+        assert result[0].album_release_date == "2018-01-01"
+        assert result[1].album_release_date == "2020-05-15"
+        assert result[2].album_release_date == "2023-11-20"
+        # Tracks without date go to end
+        assert result[3].album_release_date is None
 
-    def test_sort_tracks_within_same_album(self):
-        """Tracks from the same album should be sorted by album_track_number."""
+    def test_sort_by_album_date_desc(self, sample_tracks: list[TrackForSorting]):
+        """Sort by album release date descending (newest first)."""
+        levels = [
+            SortLevel(
+                attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.DESC
+            )
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(sample_tracks, levels, context)
+
+        assert result[0].album_release_date == "2023-11-20"
+        assert result[1].album_release_date == "2020-05-15"
+        assert result[2].album_release_date == "2018-01-01"
+        # Tracks without date go to end
+        assert result[3].album_release_date is None
+
+    def test_multi_level_artist_then_date(self):
+        """Multi-level: Artist A-Z, then Album Date oldest first."""
         tracks = [
-            TrackForSorting(
-                video_id="v2",
-                set_video_id="s2",
-                title="Track 2",
-                album_name="Album A",
-                album_release_date="2020-01-01",
-                album_track_number=2,
-            ),
             TrackForSorting(
                 video_id="v1",
                 set_video_id="s1",
+                title="New Song",
+                artist_name="Artist A",
+                album_release_date="2023-01-01",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Old Song",
+                artist_name="Artist A",
+                album_release_date="2010-01-01",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v3",
+                set_video_id="s3",
+                title="B Song",
+                artist_name="Artist B",
+                album_release_date="2020-01-01",
+                album_track_number=1,
+            ),
+        ]
+        levels = [
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
+            SortLevel(
+                attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.ASC
+            ),
+        ]
+        context = SortContext()
+
+        result = multi_level_sort(tracks, levels, context)
+
+        # Artist A first, then by date oldest first
+        assert result[0].title == "Old Song"  # Artist A, 2010
+        assert result[1].title == "New Song"  # Artist A, 2023
+        assert result[2].title == "B Song"  # Artist B
+
+    def test_multi_level_with_track_number(self):
+        """Multi-level: Album Date, then Track Number."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Track 3",
+                album_name="Album A",
+                album_release_date="2020-01-01",
+                album_track_number=3,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
                 title="Track 1",
                 album_name="Album A",
                 album_release_date="2020-01-01",
@@ -115,188 +190,61 @@ class TestAlbumReleaseDateStrategy:
             TrackForSorting(
                 video_id="v3",
                 set_video_id="s3",
-                title="Track 3",
+                title="Track 2",
                 album_name="Album A",
                 album_release_date="2020-01-01",
-                album_track_number=3,
-            ),
-        ]
-
-        strategy = AlbumReleaseDateStrategy(ascending=True)
-        context = SortContext()
-
-        sorted_tracks = strategy.sort(tracks, context)
-
-        assert sorted_tracks[0].title == "Track 1"
-        assert sorted_tracks[1].title == "Track 2"
-        assert sorted_tracks[2].title == "Track 3"
-
-
-class TestArtistAlphabeticalStrategy:
-    """Tests for ArtistAlphabeticalStrategy."""
-
-    def test_sort_ascending_a_to_z(self, sample_tracks: list[TrackForSorting]):
-        """Ascending: artists sorted A to Z."""
-        strategy = ArtistAlphabeticalStrategy(ascending=True)
-        context = SortContext()
-
-        sorted_tracks = strategy.sort(sample_tracks, context)
-
-        assert sorted_tracks[0].artist_name == "Artist A"
-        assert sorted_tracks[1].artist_name == "Artist B"
-        assert sorted_tracks[2].artist_name == "Artist C"
-        assert sorted_tracks[3].artist_name == "Artist D"
-
-    def test_sort_descending_z_to_a(self, sample_tracks: list[TrackForSorting]):
-        """Descending: artists sorted Z to A."""
-        strategy = ArtistAlphabeticalStrategy(ascending=False)
-        context = SortContext()
-
-        sorted_tracks = strategy.sort(sample_tracks, context)
-
-        assert sorted_tracks[0].artist_name == "Artist D"
-        assert sorted_tracks[1].artist_name == "Artist C"
-        assert sorted_tracks[2].artist_name == "Artist B"
-        assert sorted_tracks[3].artist_name == "Artist A"
-
-    def test_sort_tracks_same_artist_by_album_and_track(self):
-        """Tracks from same artist sorted by album, then track number."""
-        tracks = [
-            TrackForSorting(
-                video_id="v3",
-                set_video_id="s3",
-                title="Track 3 from Album B",
-                artist_name="Artist X",
-                album_name="Album B",
-                album_track_number=1,
-            ),
-            TrackForSorting(
-                video_id="v1",
-                set_video_id="s1",
-                title="Track 2 from Album A",
-                artist_name="Artist X",
-                album_name="Album A",
                 album_track_number=2,
             ),
-            TrackForSorting(
-                video_id="v2",
-                set_video_id="s2",
-                title="Track 1 from Album A",
-                artist_name="Artist X",
-                album_name="Album A",
-                album_track_number=1,
+        ]
+        levels = [
+            SortLevel(
+                attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.ASC
+            ),
+            SortLevel(
+                attribute=SortAttribute.TRACK_NUMBER, direction=SortDirection.ASC
             ),
         ]
-
-        strategy = ArtistAlphabeticalStrategy(ascending=True)
         context = SortContext()
 
-        sorted_tracks = strategy.sort(tracks, context)
+        result = multi_level_sort(tracks, levels, context)
 
-        assert sorted_tracks[0].title == "Track 1 from Album A"
-        assert sorted_tracks[1].title == "Track 2 from Album A"
-        assert sorted_tracks[2].title == "Track 3 from Album B"
+        assert result[0].title == "Track 1"
+        assert result[1].title == "Track 2"
+        assert result[2].title == "Track 3"
 
-    def test_none_artist_goes_to_end_ascending(self):
-        """Tracks without artist go to end when ascending."""
-        tracks = [
-            TrackForSorting(
-                video_id="v1",
-                set_video_id="s1",
-                title="With Artist",
-                artist_name="Artist Z",
-                album_name="Album",
-                album_track_number=1,
+    def test_empty_list(self):
+        """Empty track list returns empty list."""
+        levels = [SortLevel(attribute=SortAttribute.ARTIST_NAME)]
+        result = multi_level_sort([], levels, SortContext())
+        assert result == []
+
+    def test_empty_levels(self, sample_tracks: list[TrackForSorting]):
+        """Empty levels list returns tracks unchanged."""
+        result = multi_level_sort(sample_tracks, [], SortContext())
+        assert result == sample_tracks
+
+
+class TestFavouriteArtistsSorting:
+    """Tests for favourite artists sorting."""
+
+    def test_favourites_first(self, sample_tracks: list[TrackForSorting]):
+        """Favourite artists appear first by rank."""
+        levels = [
+            SortLevel(
+                attribute=SortAttribute.FAVOURITE_ARTISTS, direction=SortDirection.ASC
             ),
-            TrackForSorting(
-                video_id="v2",
-                set_video_id="s2",
-                title="No Artist",
-                artist_name=None,
-                album_name="Album",
-                album_track_number=1,
-            ),
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
         ]
-
-        strategy = ArtistAlphabeticalStrategy(ascending=True)
-        context = SortContext()
-
-        sorted_tracks = strategy.sort(tracks, context)
-
-        assert sorted_tracks[0].title == "No Artist"  # Empty string sorts first
-        assert sorted_tracks[1].title == "With Artist"
-
-
-class TestCreateStrategy:
-    """Tests for the strategy factory."""
-
-    def test_create_album_date_asc(self):
-        """Factory creates ascending album date strategy."""
-        strategy = create_strategy(SortOption.ALBUM_RELEASE_DATE_ASC)
-        assert isinstance(strategy, AlbumReleaseDateStrategy)
-        assert strategy.ascending is True
-
-    def test_create_album_date_desc(self):
-        """Factory creates descending album date strategy."""
-        strategy = create_strategy(SortOption.ALBUM_RELEASE_DATE_DESC)
-        assert isinstance(strategy, AlbumReleaseDateStrategy)
-        assert strategy.ascending is False
-
-    def test_create_artist_name_asc(self):
-        """Factory creates ascending artist name strategy."""
-        strategy = create_strategy(SortOption.ARTIST_NAME_ASC)
-        assert isinstance(strategy, ArtistAlphabeticalStrategy)
-        assert strategy.ascending is True
-
-    def test_create_artist_name_desc(self):
-        """Factory creates descending artist name strategy."""
-        strategy = create_strategy(SortOption.ARTIST_NAME_DESC)
-        assert isinstance(strategy, ArtistAlphabeticalStrategy)
-        assert strategy.ascending is False
-
-    def test_invalid_sort_option(self):
-        """Factory raises error for unknown option."""
-        with pytest.raises(ValueError, match="Unknown sort option"):
-            create_strategy("invalid_option")
-
-    def test_create_favourite_artists_strategy(self):
-        """Factory creates favourite artists strategy."""
-        strategy = create_strategy(SortOption.FAVOURITE_ARTISTS_FIRST)
-        assert isinstance(strategy, FavouriteArtistsStrategy)
-
-
-class TestFavouriteArtistsStrategy:
-    """Tests for FavouriteArtistsStrategy."""
-
-    def test_favourite_artists_first(self, sample_tracks: list[TrackForSorting]):
-        """Favourite artists appear before non-favourites."""
-        strategy = FavouriteArtistsStrategy()
-        # Artist C is favourite (rank 0), Artist A is second favourite (rank 1)
         context = SortContext(artist_rankings={"Artist C": 0, "Artist A": 1})
 
-        sorted_tracks = strategy.sort(sample_tracks, context)
+        result = multi_level_sort(sample_tracks, levels, context)
 
-        # Artist C should be first, Artist A second
-        assert sorted_tracks[0].artist_name == "Artist C"
-        assert sorted_tracks[1].artist_name == "Artist A"
-        # Non-favourites (B, D) sorted alphabetically after favourites
-        assert sorted_tracks[2].artist_name == "Artist B"
-        assert sorted_tracks[3].artist_name == "Artist D"
-
-    def test_empty_rankings_sorts_alphabetically(
-        self, sample_tracks: list[TrackForSorting]
-    ):
-        """With no favourites, falls back to alphabetical order."""
-        strategy = FavouriteArtistsStrategy()
-        context = SortContext(artist_rankings={})
-
-        sorted_tracks = strategy.sort(sample_tracks, context)
-
-        # All artists have rank infinity, so sorted alphabetically
-        assert sorted_tracks[0].artist_name == "Artist A"
-        assert sorted_tracks[1].artist_name == "Artist B"
-        assert sorted_tracks[2].artist_name == "Artist C"
-        assert sorted_tracks[3].artist_name == "Artist D"
+        # Favourites first by rank
+        assert result[0].artist_name == "Artist C"  # rank 0
+        assert result[1].artist_name == "Artist A"  # rank 1
+        # Non-favourites sorted alphabetically
+        assert result[2].artist_name == "Artist B"
+        assert result[3].artist_name == "Artist D"
 
     def test_case_insensitive_matching(self):
         """Artist matching is case-insensitive."""
@@ -306,7 +254,6 @@ class TestFavouriteArtistsStrategy:
                 set_video_id="s1",
                 title="Track 1",
                 artist_name="METALLICA",
-                album_name="Album",
                 album_track_number=1,
             ),
             TrackForSorting(
@@ -314,92 +261,119 @@ class TestFavouriteArtistsStrategy:
                 set_video_id="s2",
                 title="Track 2",
                 artist_name="queen",
-                album_name="Album",
                 album_track_number=1,
             ),
         ]
-
-        strategy = FavouriteArtistsStrategy()
-        # Different case in rankings
+        levels = [SortLevel(attribute=SortAttribute.FAVOURITE_ARTISTS)]
         context = SortContext(artist_rankings={"Queen": 0, "metallica": 1})
 
-        sorted_tracks = strategy.sort(tracks, context)
+        result = multi_level_sort(tracks, levels, context)
 
-        # Queen should be first despite case difference
-        assert sorted_tracks[0].artist_name == "queen"
-        assert sorted_tracks[1].artist_name == "METALLICA"
+        assert result[0].artist_name == "queen"  # rank 0
+        assert result[1].artist_name == "METALLICA"  # rank 1
 
-    def test_same_favourite_artist_sorted_by_album_release_date(self):
-        """Tracks from same favourite artist are sorted by album release date then track number."""
+    def test_no_favourites_falls_back(self, sample_tracks: list[TrackForSorting]):
+        """Without favourites, sorting continues to next level."""
+        levels = [
+            SortLevel(attribute=SortAttribute.FAVOURITE_ARTISTS),
+            SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
+        ]
+        context = SortContext(artist_rankings={})  # No favourites
+
+        result = multi_level_sort(sample_tracks, levels, context)
+
+        # All have inf rank, so fall through to artist name
+        assert result[0].artist_name == "Artist A"
+        assert result[1].artist_name == "Artist B"
+        assert result[2].artist_name == "Artist C"
+        assert result[3].artist_name == "Artist D"
+
+
+class TestPresets:
+    """Tests for preset configurations."""
+
+    def test_preset_discography(self):
+        """Discography preset: Artist A-Z → Album Date oldest → Track #."""
         tracks = [
-            TrackForSorting(
-                video_id="v2",
-                set_video_id="s2",
-                title="Track 2",
-                artist_name="Queen",
-                album_name="Newer Album",
-                album_release_date="2020-01-01",
-                album_track_number=1,
-            ),
             TrackForSorting(
                 video_id="v1",
                 set_video_id="s1",
-                title="Track 1",
-                artist_name="Queen",
-                album_name="Oldest Album",
-                album_release_date="2010-01-01",
+                title="Track 2",
+                artist_name="Artist A",
+                album_release_date="2020-01-01",
                 album_track_number=2,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Track 1",
+                artist_name="Artist A",
+                album_release_date="2020-01-01",
+                album_track_number=1,
             ),
             TrackForSorting(
                 video_id="v3",
                 set_video_id="s3",
-                title="Track 3",
-                artist_name="Queen",
-                album_name="Oldest Album",
+                title="Old Track",
+                artist_name="Artist A",
                 album_release_date="2010-01-01",
                 album_track_number=1,
             ),
         ]
 
-        strategy = FavouriteArtistsStrategy()
+        result = multi_level_sort(tracks, PRESET_DISCOGRAPHY, SortContext())
 
-        # Test with oldest albums first
-        context = SortContext(artist_rankings={"Queen": 0}, album_order="oldest")
-        sorted_tracks = strategy.sort(tracks, context)
+        assert result[0].title == "Old Track"  # 2010
+        assert result[1].title == "Track 1"  # 2020, track 1
+        assert result[2].title == "Track 2"  # 2020, track 2
 
-        # Oldest first: 2010 album tracks first (by track number), then 2020 album
-        assert sorted_tracks[0].title == "Track 3"  # 2010, track 1
-        assert sorted_tracks[1].title == "Track 1"  # 2010, track 2
-        assert sorted_tracks[2].title == "Track 2"  # 2020, track 1
-
-    def test_newest_albums_first(self):
-        """Test newest albums first sorting within favourite artist."""
+    def test_preset_latest_releases(self):
+        """Latest releases preset: Album Date newest → Track #."""
         tracks = [
             TrackForSorting(
                 video_id="v1",
                 set_video_id="s1",
-                title="Old Track",
-                artist_name="Queen",
-                album_name="Old Album",
+                title="Old",
                 album_release_date="2010-01-01",
                 album_track_number=1,
             ),
             TrackForSorting(
                 video_id="v2",
                 set_video_id="s2",
-                title="New Track",
-                artist_name="Queen",
-                album_name="New Album",
-                album_release_date="2020-01-01",
+                title="New",
+                album_release_date="2023-01-01",
                 album_track_number=1,
             ),
         ]
 
-        strategy = FavouriteArtistsStrategy()
-        context = SortContext(artist_rankings={"Queen": 0}, album_order="newest")
+        result = multi_level_sort(tracks, PRESET_LATEST_RELEASES, SortContext())
 
-        sorted_tracks = strategy.sort(tracks, context)
+        assert result[0].title == "New"  # 2023
+        assert result[1].title == "Old"  # 2010
 
-        # Newest first: 2020 album should come before 2010
-        assert sorted_tracks[0].title == "New Track"  # 2020
-        assert sorted_tracks[1].title == "Old Track"  # 2010
+    def test_preset_favourites_first(self):
+        """Favourites first preset works with rankings."""
+        tracks = [
+            TrackForSorting(
+                video_id="v1",
+                set_video_id="s1",
+                title="Non-Fav",
+                artist_name="Unknown",
+                album_release_date="2020-01-01",
+                album_track_number=1,
+            ),
+            TrackForSorting(
+                video_id="v2",
+                set_video_id="s2",
+                title="Favourite",
+                artist_name="Queen",
+                album_release_date="2020-01-01",
+                album_track_number=1,
+            ),
+        ]
+        context = SortContext(artist_rankings={"Queen": 0})
+
+        result = multi_level_sort(tracks, PRESET_FAVOURITES_FIRST, context)
+
+        assert result[0].title == "Favourite"
+        assert result[1].title == "Non-Fav"

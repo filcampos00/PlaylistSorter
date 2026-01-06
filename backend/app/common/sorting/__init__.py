@@ -1,12 +1,22 @@
 """Sorting module for platform-agnostic playlist sorting."""
 
-from .schemas import SortOption, TrackForSorting
-from .strategies import SortStrategy, SortContext, create_strategy
+from .schemas import SortAttribute, SortDirection, SortLevel, TrackForSorting
+from .strategies import (
+    SortContext,
+    multi_level_sort,
+    PRESET_DISCOGRAPHY,
+    PRESET_LATEST_RELEASES,
+    PRESET_FAVOURITES_FIRST,
+)
 
 __all__ = [
-    "SortOption",
+    "SortAttribute",
+    "SortDirection",
+    "SortLevel",
     "TrackForSorting",
-    "SortStrategy",
     "SortContext",
-    "create_strategy",
+    "multi_level_sort",
+    "PRESET_DISCOGRAPHY",
+    "PRESET_LATEST_RELEASES",
+    "PRESET_FAVOURITES_FIRST",
 ]

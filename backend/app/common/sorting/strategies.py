@@ -1,9 +1,9 @@
-"""Sorting strategies using Strategy pattern with ABC."""
+"""Sorting strategies using composable comparators for multi-level sorting."""
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Callable
 
-from .schemas import SortOption, TrackForSorting
+from .schemas import SortAttribute, SortDirection, SortLevel, TrackForSorting
 
 
 @dataclass
@@ -11,176 +11,174 @@ class SortContext:
     """Per-request context for strategies that need configuration."""
 
     artist_rankings: dict[str, int] = field(default_factory=dict)
-    album_order: str = "newest"  # "newest" or "oldest"
 
 
-class SortStrategy(ABC):
-    """Abstract base class for sorting strategies."""
+class _NegatedStr:
+    """
+    Wrapper for descending string comparison.
+    Compares in reverse order without character manipulation.
+    """
 
-    @abstractmethod
-    def sort(
-        self, tracks: list[TrackForSorting], context: SortContext
-    ) -> list[TrackForSorting]:
-        """Sort tracks and return sorted list."""
-        pass
+    __slots__ = ("_value",)
+
+    def __init__(self, value: str):
+        self._value = value
+
+    def __lt__(self, other: "_NegatedStr") -> bool:
+        return self._value > other._value
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _NegatedStr):
+            return NotImplemented
+        return self._value == other._value
+
+    def __le__(self, other: "_NegatedStr") -> bool:
+        return self._value >= other._value
 
 
-class AlbumReleaseDateStrategy(SortStrategy):
-    """Sort tracks by album release date."""
+def _get_artist_name_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for artist name."""
+    artist = (track.artist_name or "").lower()
+    if direction == SortDirection.DESC:
+        return (_NegatedStr(artist),)
+    return (artist,)
 
-    def __init__(self, ascending: bool = True):
-        self.ascending = ascending
 
-    def sort(
-        self, tracks: list[TrackForSorting], context: SortContext
-    ) -> list[TrackForSorting]:
-        # Defaults: tracks without dates go to end
-        date_default = "0000-01-01" if not self.ascending else "9999-12-31"
-        album_default = "zzz" if not self.ascending else ""
+def _get_album_name_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for album name."""
+    album = (track.album_name or "").lower()
+    if direction == SortDirection.DESC:
+        return (_NegatedStr(album),)
+    return (album,)
 
-        # Sort by (release_date, album_name, track_number)
-        return sorted(
-            tracks,
-            key=lambda t: (
-                t.album_release_date or date_default,
-                t.album_name or album_default,
-                t.album_track_number if self.ascending else -t.album_track_number,
-            ),
-            reverse=not self.ascending,
+
+def _get_album_release_date_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for album release date."""
+    # Default: tracks without dates go to end
+    if direction == SortDirection.ASC:
+        date = track.album_release_date or "9999-12-31"
+        return (date,)
+    else:
+        date = track.album_release_date or "0000-01-01"
+        return (_NegatedStr(date),)
+
+
+def _get_track_number_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for track number."""
+    num = track.album_track_number
+    if direction == SortDirection.DESC:
+        return (-num,)
+    return (num,)
+
+
+def _get_favourite_artists_key(
+    track: TrackForSorting, direction: SortDirection, context: SortContext
+) -> tuple:
+    """Get sort key for favourite artists ranking."""
+    # Normalize artist name for matching
+    normalized_rankings = {
+        name.lower(): rank for name, rank in context.artist_rankings.items()
+    }
+    artist = (track.artist_name or "").lower()
+    rank = normalized_rankings.get(artist, float("inf"))
+
+    if direction == SortDirection.DESC:
+        # Reverse ranking (non-favourites first)
+        return (-rank if rank != float("inf") else float("-inf"),)
+    return (rank,)
+
+
+# Registry of key extractors per attribute
+_KEY_EXTRACTORS: dict[
+    SortAttribute,
+    Callable[[TrackForSorting, SortDirection, SortContext], tuple],
+] = {
+    SortAttribute.ARTIST_NAME: _get_artist_name_key,
+    SortAttribute.ALBUM_NAME: _get_album_name_key,
+    SortAttribute.ALBUM_RELEASE_DATE: _get_album_release_date_key,
+    SortAttribute.TRACK_NUMBER: _get_track_number_key,
+    SortAttribute.FAVOURITE_ARTISTS: _get_favourite_artists_key,
+}
+
+
+def multi_level_sort(
+    tracks: list[TrackForSorting],
+    levels: list[SortLevel],
+    context: SortContext,
+) -> list[TrackForSorting]:
+    """
+    Sort tracks by multiple levels.
+
+    Args:
+        tracks: List of tracks to sort.
+        levels: Ordered list of sort levels (primary first).
+        context: Context with additional data (e.g., artist rankings).
+
+    Returns:
+        Sorted list of tracks.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not tracks or not levels:
+        return tracks
+
+    # Log the sort configuration
+    level_desc = " → ".join(
+        f"{lvl.attribute.value}({lvl.direction.value})" for lvl in levels
+    )
+    logger.info(f"[SORT] Sorting {len(tracks)} tracks by: {level_desc}")
+
+    def get_composite_key(track: TrackForSorting) -> tuple:
+        """Build composite sort key from all levels."""
+        key_parts: list = []
+        for level in levels:
+            extractor = _KEY_EXTRACTORS.get(level.attribute)
+            if extractor:
+                key_parts.extend(extractor(track, level.direction, context))
+        return tuple(key_parts)
+
+    result = sorted(tracks, key=get_composite_key)
+
+    # Log first 20 tracks of sorted result for debugging
+    logger.debug("[SORT] Sorted order (first 20 tracks):")
+    for i, track in enumerate(result[:20]):
+        logger.debug(
+            f"  {i + 1:2}. {track.artist_name or 'Unknown':<20} | "
+            f"{track.album_name or 'Unknown':<30} | "
+            f"{track.album_release_date or 'N/A':<10} | "
+            f"Track {track.album_track_number:2} | {track.title}"
         )
 
-
-class ArtistAlphabeticalStrategy(SortStrategy):
-    """Sort tracks by artist name alphabetically, then album, then track number."""
-
-    def __init__(self, ascending: bool = True):
-        self.ascending = ascending
-
-    def sort(
-        self, tracks: list[TrackForSorting], context: SortContext
-    ) -> list[TrackForSorting]:
-        # Defaults: tracks without artist go to end
-        artist_default = "" if self.ascending else "zzz"
-        album_default = "" if self.ascending else "zzz"
-
-        # Sort by (artist_name, album_name, track_number)
-        return sorted(
-            tracks,
-            key=lambda t: (
-                (t.artist_name or artist_default).lower(),
-                (t.album_name or album_default).lower(),
-                t.album_track_number if self.ascending else -t.album_track_number,
-            ),
-            reverse=not self.ascending,
-        )
+    return result
 
 
-class FavouriteArtistsStrategy(SortStrategy):
-    """Sort tracks with favourite artists first, then by album release date."""
+# --- Preset Definitions ---
+# Common sort configurations for convenience
 
-    def sort(
-        self, tracks: list[TrackForSorting], context: SortContext
-    ) -> list[TrackForSorting]:
-        """
-        Sort tracks prioritizing favourite artists.
+PRESET_DISCOGRAPHY: list[SortLevel] = [
+    SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
+    SortLevel(attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.ASC),
+    SortLevel(attribute=SortAttribute.TRACK_NUMBER, direction=SortDirection.ASC),
+]
 
-        Uses context.artist_rankings to determine favourites.
-        Artists in rankings get their rank value (lower = higher priority).
-        Artists not in rankings get infinity (appear after favourites).
-        Within same artist: sorts by album release date, then track number.
-        """
-        # Normalize artist rankings to lowercase for case-insensitive matching
-        normalized_rankings = {
-            name.lower(): rank for name, rank in context.artist_rankings.items()
-        }
+PRESET_LATEST_RELEASES: list[SortLevel] = [
+    SortLevel(attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.DESC),
+    SortLevel(attribute=SortAttribute.TRACK_NUMBER, direction=SortDirection.ASC),
+]
 
-        # Determine sort direction for albums
-        newest_first = context.album_order == "newest"
-        date_default = "0000-01-01" if newest_first else "9999-12-31"
-
-        def get_sort_key(track: TrackForSorting):
-            artist = (track.artist_name or "").lower()
-            # Get rank from normalized rankings, default to infinity
-            rank = normalized_rankings.get(artist, float("inf"))
-
-            # Get release date for sorting
-            release_date = track.album_release_date or date_default
-
-            return (
-                rank,
-                artist,
-                release_date
-                if not newest_first
-                else f"_{release_date}",  # Prefix for reverse
-                track.album_track_number,
-            )
-
-        # Sort, then reverse album dates if newest first
-        sorted_tracks = sorted(tracks, key=get_sort_key, reverse=newest_first)
-
-        # For newest_first, we need a more sophisticated approach
-        # because we want rank ASC, but date DESC
-        # Let's use a cleaner approach:
-        if newest_first:
-
-            def get_sort_key_newest(track: TrackForSorting):
-                artist = (track.artist_name or "").lower()
-                rank = normalized_rankings.get(artist, float("inf"))
-                release_date = track.album_release_date or "0000-01-01"
-                return (
-                    rank,
-                    artist,
-                    release_date,  # Will be reversed within groups
-                    -track.album_track_number,  # Negative for reverse
-                )
-
-            # Sort by rank/artist ASC, then by date DESC, track DESC
-            # Use tuple negation trick: sort by (rank, artist, -date, -track)
-            # Since dates are strings, we need a different approach
-            # Group by artist, then reverse date within each group
-            sorted_tracks = sorted(
-                tracks,
-                key=lambda t: (
-                    normalized_rankings.get(
-                        (t.artist_name or "").lower(), float("inf")
-                    ),
-                    (t.artist_name or "").lower(),
-                    # Invert date string for descending order
-                    "".join(
-                        chr(255 - ord(c))
-                        for c in (t.album_release_date or "0000-01-01")
-                    ),
-                    t.album_track_number,
-                ),
-            )
-        else:
-            sorted_tracks = sorted(
-                tracks,
-                key=lambda t: (
-                    normalized_rankings.get(
-                        (t.artist_name or "").lower(), float("inf")
-                    ),
-                    (t.artist_name or "").lower(),
-                    t.album_release_date or "9999-12-31",
-                    t.album_track_number,
-                ),
-            )
-
-        return sorted_tracks
-
-
-def create_strategy(option: SortOption) -> SortStrategy:
-    """Factory function - creates strategy instance per request."""
-    match option:
-        case SortOption.ALBUM_RELEASE_DATE_ASC:
-            return AlbumReleaseDateStrategy(ascending=True)
-        case SortOption.ALBUM_RELEASE_DATE_DESC:
-            return AlbumReleaseDateStrategy(ascending=False)
-        case SortOption.ARTIST_NAME_ASC:
-            return ArtistAlphabeticalStrategy(ascending=True)
-        case SortOption.ARTIST_NAME_DESC:
-            return ArtistAlphabeticalStrategy(ascending=False)
-        case SortOption.FAVOURITE_ARTISTS_FIRST:
-            return FavouriteArtistsStrategy()
-        case _:
-            raise ValueError(f"Unknown sort option: {option}")
+PRESET_FAVOURITES_FIRST: list[SortLevel] = [
+    SortLevel(attribute=SortAttribute.FAVOURITE_ARTISTS, direction=SortDirection.ASC),
+    SortLevel(attribute=SortAttribute.ARTIST_NAME, direction=SortDirection.ASC),
+    SortLevel(attribute=SortAttribute.ALBUM_RELEASE_DATE, direction=SortDirection.DESC),
+    SortLevel(attribute=SortAttribute.TRACK_NUMBER, direction=SortDirection.ASC),
+]

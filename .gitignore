@@ -14,7 +14,7 @@ dist-ssr/
 
 # Local files
 .notes/
-backend/auth_investigation/
+auth_investigation/
 logs/
 
 # IDEs/OS

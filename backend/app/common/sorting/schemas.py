@@ -5,14 +5,28 @@ from enum import Enum
 from pydantic import BaseModel
 
 
-class SortOption(str, Enum):
-    """Available sorting options for playlists."""
+class SortAttribute(str, Enum):
+    """Individual sortable attributes for multi-level sorting."""
 
-    ALBUM_RELEASE_DATE_ASC = "album_release_date_asc"
-    ALBUM_RELEASE_DATE_DESC = "album_release_date_desc"
-    ARTIST_NAME_ASC = "artist_name_asc"
-    ARTIST_NAME_DESC = "artist_name_desc"
-    FAVOURITE_ARTISTS_FIRST = "favourite_artists_first"
+    ARTIST_NAME = "artist_name"
+    ALBUM_NAME = "album_name"
+    ALBUM_RELEASE_DATE = "album_release_date"
+    TRACK_NUMBER = "track_number"
+    FAVOURITE_ARTISTS = "favourite_artists"
+
+
+class SortDirection(str, Enum):
+    """Sort direction for an attribute."""
+
+    ASC = "asc"
+    DESC = "desc"
+
+
+class SortLevel(BaseModel):
+    """A single level in multi-level sorting."""
+
+    attribute: SortAttribute
+    direction: SortDirection = SortDirection.ASC
 
 
 class TrackForSorting(BaseModel):

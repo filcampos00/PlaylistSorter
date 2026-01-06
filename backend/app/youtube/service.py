@@ -9,7 +9,7 @@ import logging
 from ytmusicapi import YTMusic
 
 from ..common.schemas import Playlist
-from ..common.sorting import SortContext, SortStrategy, TrackForSorting
+from ..common.sorting import SortContext, SortLevel, TrackForSorting, multi_level_sort
 from ..common.utils import sanitize_cookie, is_valid_origin
 
 
@@ -220,9 +220,17 @@ class YouTubeService:
         return album_data
 
     async def sort_playlist(
-        self, playlist_id: str, strategy: SortStrategy, context: SortContext
+        self,
+        playlist_id: str,
+        sort_levels: list[SortLevel],
+        context: SortContext,
     ) -> int:
-        """Sort playlist using injected strategy.
+        """Sort playlist using multi-level sorting.
+
+        Args:
+            playlist_id: ID of the playlist to sort.
+            sort_levels: Ordered list of sort levels (primary first).
+            context: Context with additional data (e.g., artist rankings).
 
         Returns:
             Number of tracks reordered (0 if already sorted).
@@ -230,7 +238,7 @@ class YouTubeService:
         tracks = await self.get_playlist_tracks(playlist_id)
         if not tracks:
             return 0  # Empty playlist
-        sorted_tracks = strategy.sort(tracks, context)
+        sorted_tracks = multi_level_sort(tracks, sort_levels, context)
         return await self._apply_sorted_order(playlist_id, tracks, sorted_tracks)
 
     async def _apply_sorted_order(
