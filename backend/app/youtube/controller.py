@@ -1,5 +1,7 @@
 """YouTube Music API routes (controller)."""
 
+import logging
+
 from fastapi import APIRouter, Depends
 
 from ..common.schemas import (
@@ -13,6 +15,7 @@ from .dependencies import get_youtube_service, get_strategy
 from .service import YouTubeService
 
 router = APIRouter(prefix="/youtube", tags=["YouTube Music"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/auth/test", response_model=AuthTestResponse)
@@ -32,7 +35,7 @@ async def test_auth(youtube: YouTubeService = Depends(get_youtube_service)):
         )
     except Exception as e:
         # Log the full error for debugging
-        print(f"Error during authentication: {str(e)}")
+        logger.error(f"Error during authentication: {str(e)}")
         # Return a friendly message to the user
         return AuthTestResponse(
             success=False,
