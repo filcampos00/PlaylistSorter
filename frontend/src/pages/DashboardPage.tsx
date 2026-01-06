@@ -204,7 +204,7 @@ export const DashboardPage = () => {
                                     {isSorting ? "Sorting..." : "Sort Now"}
                                 </button>
                                 <button
-                                    className="btn btn-text cancel-btn"
+                                    className="btn btn-outline cancel-btn"
                                     onClick={() => setSelectedPlaylistId(null)}
                                     disabled={isSorting}
                                 >
