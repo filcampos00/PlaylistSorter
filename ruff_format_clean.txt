@@ -1,0 +1,3 @@
+Would reformat: scripts\clean_project.py
+Would reformat: scripts\start_backend.py
+2 files would be reformatted, 23 files already formatted
