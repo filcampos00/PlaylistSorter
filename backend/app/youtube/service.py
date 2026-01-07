@@ -271,6 +271,22 @@ class YouTubeService:
             )
             return 0  # Already sorted - 0 tracks reordered
 
+        # Pre-validate auth before any destructive operation
+        # This catches expired tokens BEFORE we remove any tracks
+        start_prevalidate = time.time()
+        try:
+            await asyncio.to_thread(self._client.get_account_info)
+            elapsed_prevalidate = time.time() - start_prevalidate
+            logger.debug("Auth pre-validation passed")
+            logger.info(
+                f"[BENCHMARK] Auth pre-validation: {elapsed_prevalidate:.2f} seconds"
+            )
+        except Exception as auth_error:
+            logger.error(f"Auth pre-validation failed: {auth_error}")
+            raise ValueError(
+                "Your session has expired. Please update your browser headers and try again."
+            )
+
         # Remove all tracks
         start_remove = time.time()
         await asyncio.to_thread(
