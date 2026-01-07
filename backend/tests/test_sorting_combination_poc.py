@@ -393,13 +393,13 @@ class TestCombinationMatrix:
                 invalid_combinations.append((a1.value, a2.value))
 
         # Document the counts
-        print(f"\n=== 2-Level Combination Analysis ===")
+        print("\n=== 2-Level Combination Analysis ===")
         print(f"Valid combinations: {len(valid_combinations)}")
         print(f"Invalid combinations: {len(invalid_combinations)}")
-        print(f"\nValid:")
+        print("\nValid:")
         for c in valid_combinations:
             print(f"  {c[0]} → {c[1]}")
-        print(f"\nInvalid:")
+        print("\nInvalid:")
         for c in invalid_combinations:
             print(f"  {c[0]} → {c[1]}")
 
