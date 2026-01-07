@@ -48,7 +48,11 @@ const PRESETS = [
 
 /**
  * Determines which attributes are valid for a given position based on preceding levels.
- * Shows all unused + current attribute. Also shows used attributes to allow swapping.
+ * Rules:
+ * 1. Track number requires album context (album_name or album_release_date before it)
+ * 2. Album attributes can't come after track number
+ * 3. Duplicates are allowed (for swapping)
+ * 4. favourite_artists must be at L1 (index 0) only
  */
 const getSelectableAttributes = (
   index: number,
@@ -66,10 +70,13 @@ const getSelectableAttributes = (
     // Always show current attribute
     if (attr === currentAttr) return true;
 
-    // Track number needs album context
+    // Rule 4: favourite_artists must be at L1 only
+    if (attr === "favourite_artists" && index !== 0) return false;
+
+    // Rule 1: Track number needs album context
     if (attr === "track_number" && !hasAlbumContext) return false;
 
-    // Album attributes can't come after track number
+    // Rule 2: Album attributes can't come after track number
     if (
       hasTrackNumber &&
       (attr === "album_name" || attr === "album_release_date")
@@ -82,19 +89,33 @@ const getSelectableAttributes = (
   });
 };
 
+const MAX_SORT_LEVELS = 4;
+
 const getValidAttributesForNewLevel = (
   currentLevels: SortLevel[]
 ): SortAttribute[] => {
+  // Max 4 levels
+  if (currentLevels.length >= MAX_SORT_LEVELS) return [];
+
   const usedAttrs = new Set(currentLevels.map((l) => l.attribute));
   const allAttrs = currentLevels.map((l) => l.attribute);
+  const newIndex = currentLevels.length;
 
   const hasAlbumContext =
     allAttrs.includes("album_name") || allAttrs.includes("album_release_date");
   const hasTrackNumber = allAttrs.includes("track_number");
 
   return ALL_ATTRIBUTES.filter((attr) => {
+    // Rule 3: No duplicates
     if (usedAttrs.has(attr)) return false;
+
+    // Rule 4: favourite_artists only at L1
+    if (attr === "favourite_artists" && newIndex !== 0) return false;
+
+    // Rule 1: Track number needs album context
     if (attr === "track_number" && !hasAlbumContext) return false;
+
+    // Rule 2: Album attributes can't come after track number
     if (
       hasTrackNumber &&
       (attr === "album_name" || attr === "album_release_date")
@@ -116,12 +137,12 @@ const validateLevels = (levels: SortLevel[]): SortLevel[] => {
   });
 };
 
-const levelsMatch = (a: SortLevel[], b: SortLevel[]): boolean => {
+
+
+/** Check if levels match a preset's structure (attributes only, ignoring directions) */
+const levelsMatchStructure = (a: SortLevel[], b: SortLevel[]): boolean => {
   if (a.length !== b.length) return false;
-  return a.every(
-    (level, i) =>
-      level.attribute === b[i].attribute && level.direction === b[i].direction
-  );
+  return a.every((level, i) => level.attribute === b[i].attribute);
 };
 
 export const SortLevelBuilder = ({
@@ -131,8 +152,10 @@ export const SortLevelBuilder = ({
 }: SortLevelBuilderProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Check which preset (if any) matches current levels
-  const activePreset = PRESETS.find((p) => levelsMatch(value, p.levels));
+  // Check which preset (if any) matches current levels (structure, ignoring direction)
+  const activePresetByStructure = PRESETS.find((p) =>
+    levelsMatchStructure(value, p.levels)
+  );
 
   const applyPreset = (levels: SortLevel[]) => {
     onChange([...levels]);
@@ -140,6 +163,7 @@ export const SortLevelBuilder = ({
   };
 
   const addLevel = () => {
+    if (value.length >= MAX_SORT_LEVELS) return;
     const available = getValidAttributesForNewLevel(value);
     if (available.length === 0) return;
     onChange([...value, { attribute: available[0], direction: "asc" }]);
@@ -177,25 +201,69 @@ export const SortLevelBuilder = ({
     onChange(validateLevels(newLevels));
   };
 
+  const updateDirection = (index: number, direction: "asc" | "desc") => {
+    const newLevels = value.map((level, i) =>
+      i === index ? { ...level, direction } : level
+    );
+    onChange(newLevels);
+  };
+
   const canAddMoreLevels = getValidAttributesForNewLevel(value).length > 0;
 
   return (
     <div className="sort-level-builder">
-      {/* Simple View: Preset Buttons */}
+      {/* Simple View: Preset Buttons + Editable Directions */}
       {!showAdvanced && (
-        <div className="preset-grid">
-          {PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              className={`preset-card ${activePreset?.id === preset.id ? "active" : ""}`}
-              onClick={() => applyPreset(preset.levels)}
-              disabled={disabled}
-            >
-              <span className="preset-label">{preset.label}</span>
-              <span className="preset-description">{preset.description}</span>
-            </button>
-          ))}
+        <div className="preset-section">
+          <div className="preset-grid">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className={`preset-card ${activePresetByStructure?.id === preset.id ? "active" : ""}`}
+                onClick={() => applyPreset(preset.levels)}
+                disabled={disabled}
+              >
+                <span className="preset-label">{preset.label}</span>
+                <span className="preset-description">{preset.description}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Editable directions for active preset */}
+          {activePresetByStructure && (
+            <div className="preset-directions">
+              <div className="preset-directions-header">
+                <span className="preset-directions-title">
+                  {activePresetByStructure.label} sorting:
+                </span>
+              </div>
+              <div className="preset-directions-list">
+                {value.map((level, index) => (
+                  <div key={index} className="preset-direction-row">
+                    <span className="preset-attr-label">
+                      {SORT_ATTRIBUTE_LABELS[level.attribute]}
+                    </span>
+                    <select
+                      className="direction-select-compact"
+                      value={level.direction}
+                      onChange={(e) =>
+                        updateDirection(index, e.target.value as "asc" | "desc")
+                      }
+                      disabled={disabled}
+                    >
+                      <option value="asc">
+                        {SORT_DIRECTION_LABELS[level.attribute].asc}
+                      </option>
+                      <option value="desc">
+                        {SORT_DIRECTION_LABELS[level.attribute].desc}
+                      </option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

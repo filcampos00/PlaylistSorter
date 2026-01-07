@@ -69,6 +69,7 @@ class SortRequest(BaseModel):
         1. Track Number requires album context (album_name or album_release_date before it)
         2. Album attributes should not appear after Track Number
         3. No duplicate attributes
+        4. Favourite Artists must be at L1 (index 0) if used
         """
         levels = self.sort_levels
         seen_attrs: set[SortAttribute] = set()
@@ -98,6 +99,10 @@ class SortRequest(BaseModel):
             if SortAttribute.TRACK_NUMBER in preceding_attrs:
                 if attr in (SortAttribute.ALBUM_NAME, SortAttribute.ALBUM_RELEASE_DATE):
                     raise ValueError(f"{attr.value} cannot appear after Track Number")
+
+            # Rule 4: Favourite Artists must be first if used
+            if attr == SortAttribute.FAVOURITE_ARTISTS and idx != 0:
+                raise ValueError("Favourite Artists must be the first sort level")
 
         return self
 

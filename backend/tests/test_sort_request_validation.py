@@ -118,18 +118,18 @@ class TestSortRequestValidation:
             )
         assert "Duplicate sort attribute" in str(exc_info.value)
 
-    def test_valid_favourites_not_first(self):
-        """Favourite Artists not first is valid (unusual but allowed)."""
-        # This means: sort by album date, then within same date prioritize favourites
-        request = SortRequest(
-            headers_raw="Cookie: test=value",
-            sort_levels=[
-                SortLevel(attribute=SortAttribute.ALBUM_RELEASE_DATE),
-                SortLevel(attribute=SortAttribute.FAVOURITE_ARTISTS),
-                SortLevel(attribute=SortAttribute.TRACK_NUMBER),
-            ],
-        )
-        assert len(request.sort_levels) == 3
+    def test_invalid_favourites_not_first(self):
+        """Favourite Artists not at L1 is invalid (must be first)."""
+        with pytest.raises(ValidationError) as exc_info:
+            SortRequest(
+                headers_raw="Cookie: test=value",
+                sort_levels=[
+                    SortLevel(attribute=SortAttribute.ALBUM_RELEASE_DATE),
+                    SortLevel(attribute=SortAttribute.FAVOURITE_ARTISTS),
+                    SortLevel(attribute=SortAttribute.TRACK_NUMBER),
+                ],
+            )
+        assert "must be the first sort level" in str(exc_info.value)
 
     def test_valid_both_album_attributes(self):
         """Album Name + Album Release Date together is valid."""

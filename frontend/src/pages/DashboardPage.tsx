@@ -161,11 +161,10 @@ export const DashboardPage = () => {
               {playlists.map((playlist) => (
                 <div
                   key={playlist.playlist_id}
-                  className={`playlist-card ${
-                    selectedPlaylistId === playlist.playlist_id
+                  className={`playlist-card ${selectedPlaylistId === playlist.playlist_id
                       ? "selected"
                       : ""
-                  }`}
+                    }`}
                   onClick={() => {
                     setSelectedPlaylistId(playlist.playlist_id);
                     setSortResult(null);
