@@ -51,4 +51,4 @@ def setup_logging():
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    logging.info("Logging initialized. Writing to %s", LOG_FILE)
+    logger.info("Logging initialized. Writing to %s", LOG_FILE)

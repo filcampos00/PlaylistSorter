@@ -73,7 +73,7 @@ export const LoginPage = ({ onBack }: LoginPageProps) => {
           <div className="help-content">
             <ol>
               <li>
-                Open a new tab and go to <strong>Youtube Music</strong>
+                Open a new tab and go to <strong>YouTube Music</strong>
               </li>
               <li>Open Developer Tools (F12 or Ctrl+Shift+I)</li>
               <li>

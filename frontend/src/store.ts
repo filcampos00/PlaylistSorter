@@ -91,6 +91,13 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "playlist-sorter-auth",
       storage: createJSONStorage(() => sessionStorage),
+      // SECURITY NOTE: Auth headers are stored in sessionStorage which is accessible to JS.
+      // This is vulnerable to XSS attacks. Acceptable for local/personal use.
+      // For production deployment, implement server-side session storage:
+      // 1. POST headers to backend once during login
+      // 2. Backend encrypts & stores headers, returns httpOnly session cookie
+      // 3. Frontend only holds "authenticated" boolean, not the headers themselves
+      //
       // Only persist auth-related state, not UI state like isLoading
       partialize: (state) => ({
         authHeaders: state.authHeaders,

@@ -162,8 +162,8 @@ export const DashboardPage = () => {
                 <div
                   key={playlist.playlist_id}
                   className={`playlist-card ${selectedPlaylistId === playlist.playlist_id
-                      ? "selected"
-                      : ""
+                    ? "selected"
+                    : ""
                     }`}
                   onClick={() => {
                     setSelectedPlaylistId(playlist.playlist_id);
@@ -177,6 +177,9 @@ export const DashboardPage = () => {
                         alt={playlist.title}
                         onError={(e) => {
                           // Replace broken image with placeholder
+                          console.error(
+                            `Failed to load thumbnail for playlist: ${playlist.title}`,
+                          );
                           e.currentTarget.style.display = "none";
                           e.currentTarget.nextElementSibling?.classList.remove(
                             "hidden",
