@@ -10,6 +10,7 @@ trigger: always_on
   - `main.py` should only contain FastAPI default endpoints
 - **Asynchronous Operations**: Use `async/await` for all I/O bound operations
 - use `scripts\start_backend.py` to start backend server
+- Always use python virtual environment
 - There is requirements.txt and requirements-dev.txt
 
 ## Frontend (React)

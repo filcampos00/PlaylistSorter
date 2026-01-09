@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from ..common.schemas import (
     AuthTestResponse,
     PlaylistsResponse,
+    ShuffleRequest,
     SortRequest,
     SortResponse,
 )
@@ -128,3 +129,37 @@ async def sort_playlist(
         return SortResponse(success=False, message=str(e))
     except Exception as e:
         return SortResponse(success=False, message=f"Failed to sort playlist: {str(e)}")
+
+
+@router.post("/playlists/{playlist_id}/shuffle", response_model=SortResponse)
+async def shuffle_playlist(
+    playlist_id: str,
+    payload: ShuffleRequest,
+):
+    """
+    Shuffle playlist tracks in random order.
+
+    Args:
+        playlist_id: The ID of the playlist to shuffle.
+        payload: Request body containing headers.
+    """
+    try:
+        youtube = YouTubeService(payload.headers_raw)
+        count = await youtube.shuffle_playlist(playlist_id)
+
+        if count == 0:
+            message = "Playlist has no tracks to shuffle"
+        else:
+            message = f"Shuffled {count} tracks"
+
+        return SortResponse(
+            success=True,
+            message=message,
+            tracks_reordered=count,
+        )
+    except ValueError as e:
+        return SortResponse(success=False, message=str(e))
+    except Exception as e:
+        return SortResponse(
+            success=False, message=f"Failed to shuffle playlist: {str(e)}"
+        )

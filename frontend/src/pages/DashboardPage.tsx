@@ -27,6 +27,9 @@ export const DashboardPage = () => {
   // Favourite Artists State
   const [favouriteArtists, setFavouriteArtists] = useState<string[]>([]);
 
+  // Shuffle Mode State
+  const [shuffleMode, setShuffleMode] = useState(false);
+
   // Check if favourite_artists is in any sort level
   const hasFavouritesLevel = sortLevels.some(
     (level) => level.attribute === "favourite_artists",
@@ -98,17 +101,57 @@ export const DashboardPage = () => {
         message: data.message,
       });
 
-      // Clear selection on success after delay
+      // Clear toast on success after delay (panel stays open)
       if (data.success) {
         setTimeout(() => {
           setSortResult(null);
-          setSelectedPlaylistId(null);
         }, 6000);
       }
     } catch (err) {
       setSortResult({
         success: false,
         message: err instanceof Error ? err.message : "Sort failed",
+      });
+    } finally {
+      setIsSorting(false);
+    }
+  };
+
+  const handleShuffle = async () => {
+    if (!selectedPlaylistId || !authHeaders) return;
+
+    setIsSorting(true);
+    setSortResult(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/youtube/playlists/${selectedPlaylistId}/shuffle`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            headers_raw: authHeaders,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      setSortResult({
+        success: data.success,
+        message: data.message,
+      });
+
+      // Clear toast on success after delay (panel stays open)
+      if (data.success) {
+        setTimeout(() => {
+          setSortResult(null);
+        }, 6000);
+      }
+    } catch (err) {
+      setSortResult({
+        success: false,
+        message: err instanceof Error ? err.message : "Shuffle failed",
       });
     } finally {
       setIsSorting(false);
@@ -222,6 +265,8 @@ export const DashboardPage = () => {
                 <SortLevelBuilder
                   value={sortLevels}
                   onChange={setSortLevels}
+                  shuffleMode={shuffleMode}
+                  onShuffleModeChange={setShuffleMode}
                   disabled={isSorting}
                 />
 
@@ -238,10 +283,16 @@ export const DashboardPage = () => {
               <div className="sort-actions">
                 <button
                   className="btn btn-primary sort-btn"
-                  onClick={handleSort}
+                  onClick={shuffleMode ? handleShuffle : handleSort}
                   disabled={isSorting}
                 >
-                  {isSorting ? "Sorting..." : "Sort Now"}
+                  {isSorting
+                    ? shuffleMode
+                      ? "Shuffling..."
+                      : "Sorting..."
+                    : shuffleMode
+                      ? "Shuffle Now"
+                      : "Sort Now"}
                 </button>
                 <button
                   className="btn btn-outline cancel-btn"

@@ -1,5 +1,6 @@
 """Sorting strategies using composable comparators for multi-level sorting."""
 
+import random
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -183,6 +184,36 @@ def multi_level_sort(
         )
 
     return result
+
+
+def shuffle_tracks(
+    tracks: list[TrackForSorting],
+    seed: int | None = None,
+) -> list[TrackForSorting]:
+    """
+    Shuffle tracks in random order.
+
+    Args:
+        tracks: List of tracks to shuffle.
+        seed: Optional seed for reproducible randomness (useful for testing).
+
+    Returns:
+        Shuffled list of tracks.
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if not tracks:
+        return tracks
+
+    logger.info(f"[SHUFFLE] Shuffling {len(tracks)} tracks")
+
+    shuffled = list(tracks)
+    if seed is not None:
+        random.seed(seed)
+    random.shuffle(shuffled)
+    return shuffled
 
 
 # --- Preset Definitions ---
