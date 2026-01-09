@@ -11,7 +11,6 @@ Run with: python oauth_poc.py
 import os
 import time
 import json
-import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 

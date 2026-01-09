@@ -5,7 +5,6 @@ import os
 import json
 from dotenv import load_dotenv
 from ytmusicapi import YTMusic, OAuthCredentials
-from unittest.mock import patch
 import requests
 
 load_dotenv()

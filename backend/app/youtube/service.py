@@ -210,7 +210,6 @@ class YouTubeService:
                     )
                 except Exception as e:
                     logger.warning(f"Failed to fetch album {album_id}: {e}")
-                    pass
 
         # Execute all fetches concurrently
         await asyncio.gather(*[fetch_single_album(aid) for aid in album_ids])
