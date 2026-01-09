@@ -11,6 +11,7 @@ from app.common.sorting.schemas import (
 from app.common.sorting.strategies import (
     SortContext,
     multi_level_sort,
+    shuffle_tracks,
     PRESET_DISCOGRAPHY,
     PRESET_LATEST_RELEASES,
     PRESET_FAVOURITES_FIRST,
@@ -684,3 +685,55 @@ class TestDurationSorting:
         assert result[0].title == "Short A"  # Artist A, 2 min
         assert result[1].title == "Long A"  # Artist A, 5 min
         assert result[2].title == "Song B"  # Artist B
+
+
+class TestShuffleTracks:
+    """Tests for shuffle_tracks function."""
+
+    def test_shuffle_changes_order(self, sample_tracks: list[TrackForSorting]):
+        """Shuffled tracks should have different order than original (statistically)."""
+        # Use a seed that produces a different order
+        result = shuffle_tracks(sample_tracks, seed=42)
+
+        # Should be same length
+        assert len(result) == len(sample_tracks)
+        # With seed 42, order should be different for 4 tracks
+        original_ids = [t.video_id for t in sample_tracks]
+        result_ids = [t.video_id for t in result]
+        assert original_ids != result_ids
+
+    def test_shuffle_preserves_all_tracks(self, sample_tracks: list[TrackForSorting]):
+        """Shuffled list contains all original tracks."""
+        result = shuffle_tracks(sample_tracks, seed=123)
+
+        original_ids = set(t.video_id for t in sample_tracks)
+        result_ids = set(t.video_id for t in result)
+        assert original_ids == result_ids
+
+    def test_shuffle_with_seed_is_reproducible(
+        self, sample_tracks: list[TrackForSorting]
+    ):
+        """Same seed produces same shuffle order."""
+        result1 = shuffle_tracks(sample_tracks, seed=999)
+        result2 = shuffle_tracks(sample_tracks, seed=999)
+
+        result1_ids = [t.video_id for t in result1]
+        result2_ids = [t.video_id for t in result2]
+        assert result1_ids == result2_ids
+
+    def test_shuffle_empty_list(self):
+        """Empty list returns empty list."""
+        result = shuffle_tracks([])
+        assert result == []
+
+    def test_shuffle_single_track(self):
+        """Single track list returns same track."""
+        track = TrackForSorting(
+            video_id="v1",
+            set_video_id="s1",
+            title="Only Track",
+            album_track_number=1,
+        )
+        result = shuffle_tracks([track])
+        assert len(result) == 1
+        assert result[0].video_id == "v1"

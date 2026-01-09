@@ -12,6 +12,8 @@ import "./SortLevelBuilder.css";
 interface SortLevelBuilderProps {
   value: SortLevel[];
   onChange: (levels: SortLevel[]) => void;
+  shuffleMode?: boolean;
+  onShuffleModeChange?: (enabled: boolean) => void;
   disabled?: boolean;
 }
 
@@ -148,16 +150,19 @@ const levelsMatchStructure = (a: SortLevel[], b: SortLevel[]): boolean => {
 export const SortLevelBuilder = ({
   value,
   onChange,
+  shuffleMode = false,
+  onShuffleModeChange,
   disabled = false,
 }: SortLevelBuilderProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Check which preset (if any) matches current levels (structure, ignoring direction)
-  const activePresetByStructure = PRESETS.find((p) =>
-    levelsMatchStructure(value, p.levels)
-  );
+  const activePresetByStructure = shuffleMode
+    ? null
+    : PRESETS.find((p) => levelsMatchStructure(value, p.levels));
 
   const applyPreset = (levels: SortLevel[]) => {
+    if (onShuffleModeChange) onShuffleModeChange(false);
     onChange([...levels]);
     setShowAdvanced(false);
   };
@@ -228,6 +233,17 @@ export const SortLevelBuilder = ({
                 <span className="preset-description">{preset.description}</span>
               </button>
             ))}
+            {onShuffleModeChange && (
+              <button
+                type="button"
+                className={`preset-card shuffle-card ${shuffleMode ? "active" : ""}`}
+                onClick={() => onShuffleModeChange(true)}
+                disabled={disabled}
+              >
+                <span className="preset-label">🎲 Shuffle</span>
+                <span className="preset-description">Randomize track order</span>
+              </button>
+            )}
           </div>
 
           {/* Editable directions for active preset */}

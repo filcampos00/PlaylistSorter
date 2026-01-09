@@ -94,6 +94,18 @@ p {
   border-color: var(--color-text-main);
 }
 
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* Container */
 .container {
   max-width: 1200px;

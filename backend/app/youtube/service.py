@@ -9,7 +9,13 @@ import logging
 from ytmusicapi import YTMusic
 
 from ..common.schemas import Playlist
-from ..common.sorting import SortContext, SortLevel, TrackForSorting, multi_level_sort
+from ..common.sorting import (
+    SortContext,
+    SortLevel,
+    TrackForSorting,
+    multi_level_sort,
+    shuffle_tracks,
+)
 from ..common.utils import sanitize_cookie, is_valid_origin
 
 
@@ -242,6 +248,21 @@ class YouTubeService:
             return 0  # Empty playlist
         sorted_tracks = multi_level_sort(tracks, sort_levels, context)
         return await self._apply_sorted_order(playlist_id, tracks, sorted_tracks)
+
+    async def shuffle_playlist(self, playlist_id: str) -> int:
+        """Shuffle playlist tracks in random order.
+
+        Args:
+            playlist_id: ID of the playlist to shuffle.
+
+        Returns:
+            Number of tracks shuffled (0 if empty playlist).
+        """
+        tracks = await self.get_playlist_tracks(playlist_id)
+        if not tracks:
+            return 0  # Empty playlist
+        shuffled_tracks = shuffle_tracks(tracks)
+        return await self._apply_sorted_order(playlist_id, tracks, shuffled_tracks)
 
     async def _apply_sorted_order(
         self,

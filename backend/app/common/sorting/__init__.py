@@ -4,6 +4,7 @@ from .schemas import SortAttribute, SortDirection, SortLevel, TrackForSorting
 from .strategies import (
     SortContext,
     multi_level_sort,
+    shuffle_tracks,
     PRESET_DISCOGRAPHY,
     PRESET_LATEST_RELEASES,
     PRESET_FAVOURITES_FIRST,
@@ -16,6 +17,7 @@ __all__ = [
     "TrackForSorting",
     "SortContext",
     "multi_level_sort",
+    "shuffle_tracks",
     "PRESET_DISCOGRAPHY",
     "PRESET_LATEST_RELEASES",
     "PRESET_FAVOURITES_FIRST",

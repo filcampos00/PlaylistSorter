@@ -107,6 +107,17 @@ class SortRequest(BaseModel):
         return self
 
 
+class ShuffleRequest(BaseModel):
+    """Request body for shuffling a playlist."""
+
+    headers_raw: str = Field(
+        ...,
+        min_length=1,
+        max_length=50000,
+        description="Raw HTTP headers copied from browser DevTools",
+    )
+
+
 class SortResponse(BaseModel):
     """Response from sorting a playlist."""
 
