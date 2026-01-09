@@ -14,7 +14,8 @@ dist-ssr/
 
 # Local files
 .notes/
-.things/
+auth_investigation/
+logs/
 
 # IDEs/OS
 .vscode/
@@ -22,14 +23,13 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
-# Docker
-.docker_data/
-
 # Frontend (Vite/Node)
 frontend/node_modules/
 frontend/dist/
 frontend/dist-ssr/
 frontend/*.local
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
 frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*

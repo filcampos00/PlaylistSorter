@@ -1,0 +1,340 @@
+.dashboard-page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  padding: 2rem;
+}
+
+.dashboard-container {
+  position: relative;
+  z-index: 10;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.channel-name {
+  color: var(--color-secondary);
+  font-weight: 500;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Loading State */
+.loading-state,
+.error-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-state {
+  color: #fca5a5;
+}
+
+.error-state .btn {
+  margin-top: 1rem;
+}
+
+/* Playlist Grid */
+.playlists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.playlist-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+}
+
+.playlist-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.2);
+}
+
+.playlist-thumbnail {
+  aspect-ratio: 1;
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+
+.playlist-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-thumbnail {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: linear-gradient(135deg, var(--color-bg-card) 0%, var(--color-bg-dark) 100%);
+}
+
+.placeholder-thumbnail.hidden {
+  display: none;
+}
+
+.playlist-info {
+  padding: 1rem;
+}
+
+.playlist-info h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Reuse orb styles */
+.dashboard-page .bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(120px);
+  z-index: 0;
+}
+
+.dashboard-page .orb-primary {
+  top: -20%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background-color: var(--color-primary);
+  opacity: 0.15;
+}
+
+.dashboard-page .orb-secondary {
+  bottom: -20%;
+  left: -10%;
+  width: 600px;
+  height: 600px;
+  background-color: var(--color-secondary);
+  opacity: 0.08;
+}
+
+/* Selected Card */
+.playlist-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 8px 30px rgba(139, 92, 246, 0.2);
+  transform: translateY(-4px);
+}
+
+.selection-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.playlist-card {
+  position: relative;
+}
+
+/* Floating Sort Controls Panel */
+.sort-controls-panel {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 440px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: rgba(15, 15, 20, 0.97);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 1.25rem 1.5rem 1.5rem;
+  z-index: 100;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.sort-controls-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sort-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sort-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sort-label strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.sort-select {
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 250px;
+}
+
+.sort-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sort-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.sort-btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+.cancel-btn {
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cancel-btn:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Result Toast */
+.sort-result-toast {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sort-result-toast.success {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #86efac;
+}
+
+.sort-result-toast.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.toast-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0.25rem;
+  line-height: 1;
+  transition: opacity var(--transition-fast);
+}
+
+.toast-dismiss:hover {
+  opacity: 1;
+}
+
+/* Slide Up Animation */
+@keyframes slideUp {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out forwards;
+}

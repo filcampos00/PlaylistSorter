@@ -1,0 +1,234 @@
+.favourite-artists-input {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Album Order Selector */
+.album-order-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.album-order-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+}
+
+.album-order-select {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.album-order-select:focus {
+    outline: none;
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.album-order-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Method Toggle */
+.method-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.toggle-btn.active {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+    color: #c4b5fd;
+}
+
+.toggle-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Manual Input */
+.manual-input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.artists-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #fff;
+    resize: vertical;
+    min-height: 60px;
+}
+
+.artists-textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.artists-textarea:focus {
+    outline: none;
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.artist-count {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+/* Last.fm Input */
+.lastfm-input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.lastfm-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.lastfm-username {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #fff;
+}
+
+.lastfm-username::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.lastfm-username:focus {
+    outline: none;
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.lastfm-period {
+    min-width: 120px;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.lastfm-period:focus {
+    outline: none;
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.fetch-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(139, 92, 246, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    border-radius: 6px;
+    color: #c4b5fd;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.fetch-btn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.4);
+}
+
+.fetch-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error-message {
+    font-size: 0.85rem;
+    color: #fca5a5;
+    margin: 0;
+}
+
+.fetched-artists {
+    padding: 0.75rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 6px;
+}
+
+.fetched-artists .artist-count {
+    color: #86efac;
+    margin-bottom: 0.25rem;
+}
+
+.fetched-artists .artist-preview {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-callout {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(139, 92, 246, 0.1); /* Subtle purple tint to match theme */
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 6px;
+}
+
+.info-icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    color: #c4b5fd; /* Lighter purple */
+    flex-shrink: 0;
+}
+
+.info-text {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.4;
+}

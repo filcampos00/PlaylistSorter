@@ -2,6 +2,7 @@ import os
 import shutil
 import argparse
 
+
 def clean_project(dry_run=False):
     """
     Cleans the project of various cache and temporary files/directories.
@@ -14,22 +15,20 @@ def clean_project(dry_run=False):
         ".ruff_cache",
         ".pytest_cache",
         ".mypy_cache",
-        
         # Frontend
         "frontend/dist",
         "frontend/dist-ssr",
         "frontend/*.tsbuildinfo",
-        
         # General temporary files
         "**/.DS_Store",
-        "**/Thumbs.db"
+        "**/Thumbs.db",
     ]
 
     # Explicitly DO NOT clean:
     # .env, .notes, .venv, .vscode, node_modules (unless explicitly requested)
 
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    
+
     print(f"{'DRY RUN: ' if dry_run else ''}Cleaning project in {root_dir}")
 
     import glob
@@ -51,9 +50,14 @@ def clean_project(dry_run=False):
                     except Exception as e:
                         print(f"Error removing {path}: {e}")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Clean project cache and temp files.")
-    parser.add_argument("--dry-run", action="store_true", help="Show what would be removed without actually deleting.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be removed without actually deleting.",
+    )
     args = parser.parse_args()
 
     clean_project(dry_run=args.dry_run)
