@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Check, Shuffle } from "lucide-react";
+import { ChevronRight, Check, Shuffle, Loader2 } from "lucide-react";
 import { Modal, ModalHeader, ModalContent, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { PresetEditor } from "@/components/PresetEditor";
@@ -131,7 +131,16 @@ export function SortModal({
             </ModalHeader>
 
             <ModalContent>
-                {sortComplete ? (
+                {/* Sorting in progress view */}
+                {isSorting ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <Loader2 className="mb-4 h-12 w-12 animate-spin text-primary" />
+                        <h3 className="mb-2 text-lg font-semibold">Sorting playlist...</h3>
+                        <p className="text-center text-muted-foreground">
+                            Organizing your tracks. This may take a moment.
+                        </p>
+                    </div>
+                ) : sortComplete ? (
                     <div className="flex flex-col items-center justify-center py-12">
                         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success">
                             <Check className="h-8 w-8 text-white" />
