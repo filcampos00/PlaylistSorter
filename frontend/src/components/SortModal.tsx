@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { PresetEditor } from "@/components/PresetEditor";
 import { CustomSortBuilder } from "@/components/CustomSortBuilder";
 import { FavouriteArtistsInput } from "@/components/FavouriteArtistsInput";
-import { cn } from "@/lib/utils";
 import type { SortLevel, Playlist } from "@/types";
 import {
     PRESET_DISCOGRAPHY,
@@ -201,11 +200,7 @@ export function SortModal({
                                 {/* Shuffle option */}
                                 <button
                                     onClick={onShuffle}
-                                    disabled={isSorting}
-                                    className={cn(
-                                        "group w-full rounded-xl border border-border bg-secondary/30 p-5 text-left transition-all hover:border-purple-500 hover:bg-secondary/50",
-                                        isSorting && "opacity-50 cursor-not-allowed"
-                                    )}
+                                    className="group w-full rounded-xl border border-border bg-secondary/30 p-5 text-left transition-all hover:border-purple-500 hover:bg-secondary/50"
                                 >
                                     <div className="flex items-center gap-3">
                                         <Shuffle className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
