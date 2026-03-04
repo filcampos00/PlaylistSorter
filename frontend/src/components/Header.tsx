@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/components/ThemeProvider";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
@@ -8,13 +9,18 @@ interface HeaderProps {
 }
 
 export function Header({ userName, onLogout }: HeaderProps) {
+    const { theme } = useTheme();
     return (
         <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                 {/* Logo */}
                 <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                        <span className="text-lg">🎵</span>
+                    <div className="flex h-9 w-9 overflow-hidden items-center justify-center rounded-full">
+                        <img
+                            src={theme === "light" ? "/logo-light.png" : "/logo-dark.png"}
+                            alt="Playlist Sorter Logo"
+                            className="h-full w-full object-cover"
+                        />
                     </div>
                     <span className="text-lg font-semibold">Playlist Sorter</span>
                 </div>
