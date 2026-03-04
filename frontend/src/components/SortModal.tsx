@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { PresetEditor } from "@/components/PresetEditor";
 import { CustomSortBuilder } from "@/components/CustomSortBuilder";
 import { FavouriteArtistsInput } from "@/components/FavouriteArtistsInput";
-import { cn } from "@/lib/utils";
 import type { SortLevel, Playlist } from "@/types";
 import {
     PRESET_DISCOGRAPHY,
