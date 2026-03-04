@@ -1,8 +1,0 @@
-{
-  "name": "ytmusic-api-poc",
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "ytmusic-api": "latest"
-  }
-}
