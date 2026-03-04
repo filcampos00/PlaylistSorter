@@ -14,7 +14,7 @@ dist-ssr/
 
 # Local files
 .notes/
-.agent/
+.agents/
 auth_investigation/
 logs/
 
