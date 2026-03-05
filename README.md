@@ -33,18 +33,18 @@ On the login page, the app walks you through how to copy your request headers fr
 
 ## Tech Stack
 
-| Layer    | Technology                                           |
-| -------- | ---------------------------------------------------- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS v4, Zustand |
-| Backend  | Python, FastAPI, uvicorn, `ytmusicapi`, `httpx`      |
-| APIs     | YouTube Music (via browser headers), Last.fm         |
+| Layer    | Technology                                                           |
+| -------- | -------------------------------------------------------------------- |
+| Frontend | React 19.2, TypeScript 5.9, Vite 7.2, Tailwind CSS 4.1, Zustand 5.0  |
+| Backend  | Python 3.12, FastAPI 0.128, uvicorn 0.40, `ytmusicapi` 1.11, `httpx` |
+| APIs     | YouTube Music (via browser headers), Last.fm                         |
 
 ---
 
 ## Prerequisites
 
-- Python 3.11+
-- Node.js 18+ and npm
+- Python 3.12+
+- Node.js 24+ and npm
 - A [Last.fm API key](https://www.last.fm/api/account/create) *(only required for Last.fm integration)*
 
 ---
